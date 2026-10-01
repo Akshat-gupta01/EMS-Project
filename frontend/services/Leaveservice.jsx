@@ -1,0 +1,15 @@
+import api from "../utils/axios";
+
+export async function leaveCreate(data) {
+    return api.post("/api/leave/apply", data);
+}
+
+export async function leaveUpdate(id, data) {
+    return api.patch(`/api/leave/update/${id}`, data);
+}
+
+export async function leaveGetAll() {
+    return api.get("/api/leave/get-all-leave");
+}
+
+

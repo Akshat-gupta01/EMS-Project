@@ -1,0 +1,36 @@
+# Node modules
+node_modules/
+frontend/node_modules/
+Backend/node_modules/
+
+# Environment variables & secrets
+.env
+.env.*
+*.env
+!.env.example
+frontend/.env
+Backend/.env
+
+# Build outputs
+dist/
+dist-ssr/
+frontend/dist/
+
+# Uploads
+Backend/uploads/
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor & OS files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
