@@ -1,31 +1,32 @@
 import React, { useState } from 'react'
-import { Link,useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { login } from '../../services/Authservice';
+import { HiEye, HiEyeOff } from 'react-icons/hi';
 
 function Login() {
-  const navigate=useNavigate();
-  const [user, setUser] = useState({ email: "", password: "" })
+  const navigate = useNavigate();
+  const [user, setUser] = useState({ email: "", password: "" });
+  
+  // Beginner-friendly state: true means show password, false means hide password
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log(user);
-    try{
+    try {
       const response = await login(user);
       console.log(user);
       toast.success(response.data?.message || "Login Successful")
-      const loggedInuser=response.data?.user;
+      const loggedInuser = response.data?.user;
 
       // check if approved 
-      if(loggedInuser && loggedInuser.roleId === null)
-      {
+      if (loggedInuser && loggedInuser.roleId === null) {
         navigate('/pendingapproval')
-      }
-      else{
+      } else {
         navigate('/dashboard');
       }
-    }
-    catch(err){
+    } catch (err) {
       console.log(err);
       toast.error(err.response?.data?.message || "Login Failed")
     }
@@ -61,14 +62,24 @@ function Login() {
             <label className="font-semibold text-indigo-600 text-xs uppercase tracking-wider">
               Password
             </label>
-            <input
-              type="password"
-              placeholder="Enter Password"
-              autoComplete="current-password"
-              value={user.password}
-              onChange={(e) => setUser({ ...user, password: e.target.value })}
-              className="px-3.5 py-2.5 rounded-lg border border-gray-200 text-sm outline-none bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition duration-150"
-            />
+            <div className="relative flex items-center">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter Password"
+                autoComplete="current-password"
+                value={user.password}
+                onChange={(e) => setUser({ ...user, password: e.target.value })}
+                className="w-full px-3.5 py-2.5 pr-10 rounded-lg border border-gray-200 text-sm outline-none bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition duration-150"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 text-gray-400 hover:text-indigo-600 focus:outline-none cursor-pointer"
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <HiEyeOff className="text-lg" /> : <HiEye className="text-lg" />}
+              </button>
+            </div>
           </div>
           <button
             type="submit"

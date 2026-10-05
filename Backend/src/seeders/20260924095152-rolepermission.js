@@ -14,7 +14,7 @@ module.exports = {
     */
     await queryInterface.bulkInsert('RolePermissions', [ 
         // admin role (All 20 Permissions)
-        { roleId: 1, permissionId: 1 },  // create_employee
+        { roleId: 1, permissionId: 1 },  // approve_employee
         { roleId: 1, permissionId: 2 },  // update_employee
         { roleId: 1, permissionId: 3 },  // delete_employee
         { roleId: 1, permissionId: 4 },  // manage_roles
@@ -36,7 +36,7 @@ module.exports = {
         { roleId: 1, permissionId: 20 }, // update_permissions
        
         // hr role
-        { roleId: 2, permissionId: 1 },  // create_employee
+        { roleId: 2, permissionId: 1 },  // approve_employee
         { roleId: 2, permissionId: 2 },  // update_employee
         { roleId: 2, permissionId: 4 },  // manage_roles
         { roleId: 2, permissionId: 5 },  // approve_leave

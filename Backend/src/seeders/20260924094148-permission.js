@@ -13,7 +13,7 @@ module.exports = {
      * }], {});
     */
     await queryInterface.bulkInsert('Permissions', [
-          { name: "create_employee" },
+          { name: "approve_employee" },
           { name: "update_employee" },
           { name: "delete_employee" },
           { name: "manage_roles" },
