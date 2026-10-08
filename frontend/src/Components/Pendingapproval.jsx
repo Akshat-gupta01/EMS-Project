@@ -42,7 +42,7 @@ function PendingApproval() {
     try {
       const response = await logout();
       toast.success(response.data?.message || "Logout Successful");
-      navigate('/login');
+      navigate('/');
     } catch (err) {
       console.log(err);
       toast.error(err.response?.data?.message || "Logout Failed");

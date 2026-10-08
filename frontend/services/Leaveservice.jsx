@@ -8,8 +8,10 @@ export async function leaveUpdate(id, data) {
     return api.patch(`/api/leave/update/${id}`, data);
 }
 
-export async function leaveGetAll() {
-    return api.get("/api/leave/get-all-leave");
+export async function leaveGetAll(page = 1, limit = 10,search) {
+    return api.get("/api/leave/get-all-leave", {
+        params: { page, limit,search }
+    });
 }
 
 

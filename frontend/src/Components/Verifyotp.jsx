@@ -13,7 +13,7 @@ function Verifyotp() {
       const response = await verify(verifyuser);
       console.log(verifyuser);
       toast.success(response.data?.message || "Verified");
-      navigate('/login');
+      navigate('/');
     }
     catch (err) {
       console.log(err);
@@ -73,7 +73,7 @@ function Verifyotp() {
 
         <p className="text-center mt-5 text-sm text-gray-500">
           Already verified?{' '}
-          <Link to="/login" className="text-indigo-600 font-medium hover:underline cursor-pointer">
+          <Link to="/" className="text-indigo-600 font-medium hover:underline cursor-pointer">
             Login
           </Link>
         </p>

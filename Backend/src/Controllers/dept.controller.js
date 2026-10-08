@@ -1,4 +1,5 @@
 const { Department, User } = require('../models');
+const { Op } = require('sequelize');
 
 const addDepartment = async (req, res) => {
     try {
@@ -30,7 +31,24 @@ const addDepartment = async (req, res) => {
 
 const getallDepartments = async (req, res) => {
     try {
+        const { search } = req.query;
+
+        const whereCondition = {};
+        if (search && search.trim()) {
+            whereCondition.departmentName = {
+                [Op.like]: `%${search.trim()}%`
+            };
+        }
+
         const department = await Department.findAll({
+            where: whereCondition,
+            include: [
+                {
+                    model: User,
+                    as: 'employees',
+                    attributes: ['id'] // Sirf IDs fetch hongi count nikalne ke liye
+                }
+            ],
             order: [['id', 'ASC']]
         });
         res.status(200).json({

@@ -9,14 +9,15 @@ function Department() {
   const [openModal, setOpenModal] = useState(false);  // screen open karne ke liye
   const [selectedDept, setSelectedDept] = useState(null); // store current selected department data
   const [isEditing, setIsEditing] = useState(false); // for toggle edit and add
+  const [search, setSearch] = useState('');
   
   useEffect(() => {
     getallDepts();
-  }, []);
+  }, [search]);
 
   const getallDepts = async () => {
     try {
-      const response = await getAllDepartments();
+      const response = await getAllDepartments(search);
       setDepartments(response.data?.department || []);
     } catch (error) {
       console.log(error);
@@ -86,12 +87,21 @@ function Department() {
             <h1 className="text-2xl font-bold text-gray-900">Departments Directory</h1>
             <p className="text-sm text-gray-500">Manage company departments</p>
           </div>
-          <button
-            onClick={openAddModal}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition"
-          >
-            <HiPlus /> Add Department
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm w-full sm:w-64"
+            />
+            <button
+              onClick={openAddModal}
+              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition whitespace-nowrap"
+            >
+              <HiPlus /> Add Department
+            </button>
+          </div>
         </div>
 
         {/* Table Card (Styled like Employee.jsx) */}
@@ -101,13 +111,14 @@ function Department() {
               <tr>
                 <th className="px-4 py-4 text-left w-20">DEPT ID</th>
                 <th className="px-4 py-4 text-left">DEPARTMENT NAME</th>
+                <th className="px-4 py-4 text-center">ENROLLED EMPLOYEES</th>
                 <th className="px-4 py-4 text-center w-28">ACTIONS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
               {departments.length === 0 ? (
                 <tr>
-                  <td colSpan="3" className="py-8 text-center text-gray-400">
+                  <td colSpan="4" className="py-8 text-center text-gray-400">
                     No departments found
                   </td>
                 </tr>
@@ -120,6 +131,12 @@ function Department() {
                     <td className="py-4 px-6 text-sm font-medium text-gray-800">
                       {dept.departmentName}
                     </td>
+                    <td className="py-4 px-6 text-center">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                        {dept.employees?.length || 0} Employees
+                      </span>
+                    </td> 
                     <td className="py-4 px-6">
                       <div className="flex justify-center gap-3">
                         <button

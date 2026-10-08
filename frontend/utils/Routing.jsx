@@ -12,12 +12,13 @@ import Attendance from '../src/Components/Attendance'
 import Salary from '../src/Components/Salary'
 import Leave from '../src/Components/Leave'
 import RolesPermissions from '../src/Components/RolesPermissions'
+import Attendancereport from '../src/Components/Attendancereport'
 
 function Routing() {
   return (
     <Routes>
-        <Route path="/" element={<Register/>}/>
-        <Route path="/login" element={<Login/>}/>
+        <Route path="/" element={<Login/>}/>
+        <Route path="/register" element={<Register/>}/>
         <Route path='/verifyotp' element={<Verifyotp/>}/>
         <Route path='/logout' element={<Logout/>}/>
         <Route path='/pendingapproval' element={<Pendingapproval/>}/>
@@ -28,6 +29,7 @@ function Routing() {
         <Route path="/attendance" element={<Attendance/>}/>
         <Route path="/salary" element={<Salary/>}/>
         <Route path="/leave" element={<Leave/>}/>
+        <Route path="/attendance-report" element={<Attendancereport/>}/>
     </Routes>
   )
 }

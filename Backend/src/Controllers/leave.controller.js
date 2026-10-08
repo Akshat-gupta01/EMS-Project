@@ -1,16 +1,17 @@
 const { User, Leave } = require('../models');
+const { Op } = require('sequelize');
 
 async function leaveCreate(req, res) {
     try {
-        const { leaveType, reason, startDate, endDate } = req.body;
+        const { leaveType, reason, leaveDate, duration} = req.body;
         const userId = req.user?.id || req.body.userId;
 
-        if (!startDate || !endDate) {
-            return res.status(400).json({ message: "Start Date and End Date are required" });
+        if (!leaveDate) {
+            return res.status(400).json({ message: "Leave date is required" });
         }
 
-        if (new Date(startDate) > new Date(endDate)) {
-            return res.status(400).json({ message: "Start Date cannot be after End Date" });
+        if (!duration || !duration.trim()) {
+            return res.status(400).json({ message: "Duration is required" });
         }
 
         if (!reason || !reason.trim()) {
@@ -21,8 +22,9 @@ async function leaveCreate(req, res) {
             userId,
             leaveType: leaveType || 'Casual Leave',
             reason: reason.trim(),
-            startDate,
-            endDate
+            leaveDate,
+            duration,
+            status:'pending'
         });
 
         return res.status(201).json({ message: "Leave applied successfully", leave });
@@ -35,7 +37,7 @@ async function leaveCreate(req, res) {
 async function leaveUpdate(req, res) {
     try {
         const { id } = req.params;
-        const { status, reason, startDate, endDate, leaveType } = req.body;
+        const { status, reason, leaveDate, duration, leaveType, rejection_reason } = req.body;
 
         const leave = await Leave.findByPk(id);
         if (!leave) {
@@ -44,9 +46,10 @@ async function leaveUpdate(req, res) {
 
         if (status) leave.status = status;
         if (reason) leave.reason = reason;
-        if (startDate) leave.startDate = startDate;
-        if (endDate) leave.endDate = endDate;
+        if (leaveDate) leave.leaveDate = leaveDate;
+        if (duration) leave.duration = duration;
         if (leaveType) leave.leaveType = leaveType;
+        if (rejection_reason !== undefined) leave.rejection_reason = rejection_reason;
 
         await leave.save();
 
@@ -59,11 +62,29 @@ async function leaveUpdate(req, res) {
 
 async function leaveGetAll(req, res) {
     try {
-        const leaves = await Leave.findAll({
+        const { search } = req.query;
+        // 1. Pagination Parameters (Default: Page 1, Limit 10)
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+
+        // 2. findAndCountAll with Limit & Offset
+        const { count, rows } = await Leave.findAndCountAll({
+            limit: limit,
+            offset: offset,
             include: [{ model: User, as: 'user', attributes: ['id', 'username', 'email'] }],
             order: [['createdAt', 'DESC']]
         });
-        return res.status(200).json({ message: "All leaves fetched successfully", leaves });
+
+        // 4. Send Response with Pagination Info
+        return res.status(200).json({
+            message: "All leaves fetched successfully",
+            leaves: rows,
+            totalCount: count,
+            totalPages: Math.ceil(count / limit),
+            currentPage: page,
+            itemsPerPage: limit
+        });
     } catch (error) {
         console.error("Error fetching all leaves:", error);
         return res.status(500).json({ message: error.message || "Failed to fetch leaves" });

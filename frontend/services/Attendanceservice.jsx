@@ -11,3 +11,7 @@ export const updateAttendance=async(id,userData)=>{
 export const getAllAttendance=async()=>{
     return api.get(`/api/attendance/get-attendance`)
 }
+
+export const getAttendanceReport = async (params) => {
+    return api.get("/api/attendance/attendance-report", { params });
+}

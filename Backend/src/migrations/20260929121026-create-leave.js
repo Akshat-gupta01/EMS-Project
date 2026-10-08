@@ -15,11 +15,11 @@ module.exports = {
       leaveType: {
         type: Sequelize.STRING
       },
-      startDate: {
+      leaveDate: {
         type: Sequelize.DATE
       },
-      endDate: {
-        type: Sequelize.DATE
+      duration: {
+        type: Sequelize.STRING
       },
       reason: {
         type: Sequelize.STRING
@@ -27,6 +27,10 @@ module.exports = {
       status: {
         type: Sequelize.STRING,
         defaultValue: "pending"
+      },
+
+      rejection_reason: {
+        type: Sequelize.STRING
       },
       createdAt: {
         allowNull: false,

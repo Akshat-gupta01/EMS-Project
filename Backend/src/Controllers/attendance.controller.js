@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { Attendance, User, Department } = require('../models');
 
 async function markAttendance(req,res){
@@ -81,6 +82,63 @@ async function updateAttendance(req,res) {
 }
 
 
+async function getallAttendancereport(req, res) {
+  try {
+    const { startDate, endDate, userId, departmentId } = req.query;
+
+    // 1. Pagination Parameters (Default: Page 1, Limit 10)
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // 2. Filter Condition
+    let whereCondition = {};
+    if (startDate && endDate) {
+      whereCondition.date = {
+        [Op.between]: [startDate, endDate]
+      };
+    }
+
+    if (userId) {
+      whereCondition.userId = userId;
+    }
+
+    // 3. findAndCountAll with Limit & Offset
+    const { count, rows } = await Attendance.findAndCountAll({
+      where: whereCondition,
+      limit: limit,
+      offset: offset,
+      order: [['date', 'DESC'], ['id', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'username', 'email'],
+          include: [
+            {
+              model: Department,
+              as: 'department',
+              attributes: ['id', 'departmentName']
+            }
+          ]
+        }
+      ]
+    });
+
+    // 4. Send Response with Pagination Info
+    return res.status(200).json({
+      message: 'Attendance report fetched successfully',
+      data: rows,
+      totalCount: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+      itemsPerPage: limit
+    });
+  } catch (error) {
+    console.error("Error fetching report:", error);
+    return res.status(500).json({ message: "Failed to fetch attendance report" });
+  }
+}
 
 
-module.exports={markAttendance,getallAttendance,updateAttendance}
+module.exports={markAttendance,getallAttendance,updateAttendance,getallAttendancereport}

@@ -26,14 +26,14 @@ module.exports = (sequelize, DataTypes) => {
       userId: {
         type: DataTypes.INTEGER
       },
+      leaveDate:{
+        type:DataTypes.DATE
+      },
+      duration:{
+        type:DataTypes.STRING
+      },
       leaveType: {
         type: DataTypes.STRING
-      },
-      startDate: {
-        type: DataTypes.DATE
-      },
-      endDate: {
-        type: DataTypes.DATE
       },
       reason: {
         type: DataTypes.STRING
@@ -41,6 +41,9 @@ module.exports = (sequelize, DataTypes) => {
       status: {
         type: DataTypes.STRING,
         defaultValue:"pending"
+      },
+      rejection_reason:{
+        type:DataTypes.STRING
       },
       createdAt: {
         allowNull: false,

@@ -5,8 +5,10 @@ export const addDepartment = async (data) => {
   return api.post("/api/department/add-department", data);
 };
 
-export const getAllDepartments = async () => {
-  return api.get("/api/department/get-all-departments");
+export const getAllDepartments = async (search) => {
+  return api.get("/api/department/get-all-departments", {
+    params: { search }
+  });
 };
 
 export const updateDepartment = async (id, data) => {

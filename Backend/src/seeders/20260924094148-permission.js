@@ -13,26 +13,29 @@ module.exports = {
      * }], {});
     */
     await queryInterface.bulkInsert('Permissions', [
-          { name: "approve_employee" },
+          { name: "create_employee" },
           { name: "update_employee" },
           { name: "delete_employee" },
+          { name: "view_employees" },
           { name: "manage_roles" },
           { name: "approve_leave" },
           { name: "apply_leave" },
           { name: "view_attendance" },
           { name: "mark_attendance" },
-          { name: "view_salary" },
-          { name: "view_employees" },
+          {name:"view_attendance_reports"},
+          { name: "update_attendance" },
           { name: "create_department" },
           { name: "update_department" },
           { name: "delete_department" },
           { name: "view_departments" },
-          { name: "update_attendance" },
+          { name: "view_salary" },
           { name: "manage_salary" },
           { name: "update_salary" },
           { name: "view_roles" },
           { name: "view_permissions" },
           { name: "update_permissions" },
+          { name: "update_status" }
+         
       ]);
   },
 

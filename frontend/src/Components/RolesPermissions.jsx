@@ -190,13 +190,6 @@ function RolesPermissions() {
               </button>
             </div>
 
-            {/* Admin Notice */}
-            {isAdmin && (
-              <div className="p-3 mb-6 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-                ⚠️ <strong>Admin Notice:</strong> Admin has full access to all system permissions by default.
-              </div>
-            )}
-
             {/* Permissions Checkbox Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {permissions.map((perm) => {

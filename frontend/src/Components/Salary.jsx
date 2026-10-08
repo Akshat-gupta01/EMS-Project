@@ -3,102 +3,115 @@ import { getAllSalary, updateSalary, getmySalary, addSalary } from '../../servic
 import { getAllEmployees } from '../../services/Userservice';
 import { getMe } from '../../services/Authservice';
 import { toast } from 'react-hot-toast';
+import { HiPlus, HiPencil, HiX } from 'react-icons/hi';
 import Sidebar from './Sidebar';
+import Pagination from './Pagination';
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+const YEARS = ['2024', '2025', '2026', '2027', '2028'];
 
 function Salary() {
-  const [currentUser, setCurrentUser] = useState(null); // identify the role of the user
-  const [isAdmin, setIsAdmin] = useState(false);  //  check it is admin or not
-  const [isEditing, setIsEditing] = useState(false); // react mode on editing or non-editing
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [salary, setSalary] = useState([]);
+  const [employee, setEmployee] = useState([]);
+
+  // Option A: selectedId tracks edit mode (null = Add, ID = Update)
   const [selectedId, setSelectedId] = useState(null);
-  const [salary, setSalary] = useState([]); // salary data
-  const [employee, setEmployee] = useState([]); // employee data
-  const [formData, setFormData] = useState({  // form data state
-    userId: "",
-    basicSalary: "",
-    bonus: "",
-    deduction: "",
-    netsalary: "",
-    month: "",
-    year: ""
+  const [openModal, setOpenModal] = useState(false);
+  const [formData, setFormData] = useState({
+    userId: '',
+    basicSalary: '',
+    bonus: '',
+    deduction: '',
+    month: '',
+    year: ''
   });
 
-  const getSalary = async () => {
+  const [selectedStatus, setSelectedStatus] = useState('active'); 
+  const [search, setSearch] = useState('');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const getSalary = async (page = currentPage) => {
     try {
-      const response = await getAllSalary();
+      const response = await getAllSalary(page, 10, search);
       setSalary(response.data?.salary || []);
+      setTotalPages(response.data?.totalPages || 1);
     } catch (error) {
-      console.error("Error fetching all salaries:", error);
+      console.error('Error fetching all salaries:', error);
       toast.error(error.response?.data?.message || error.message);
     }
   };
 
-  const mySalary = async () => {
+  const mySalary = async (page = currentPage) => {
     try {
-      const response = await getmySalary();
+      const response = await getmySalary(page, 10);
       setSalary(response.data?.salary || []);
+      setTotalPages(response.data?.totalPages || 1);
     } catch (error) {
-      console.error("Error fetching my salary:", error);
+      console.error('Error fetching my salary:', error);
       toast.error(error.response?.data?.message || error.message);
     }
   };
 
   const fetchEmployee = async () => {
     try {
-      const response = await getAllEmployees();
+      const response = await getAllEmployees(1, 1000, selectedStatus);
       setEmployee(response.data?.user || []);
     } catch (error) {
-      console.error("Error fetching employees:", error);
+      console.error('Error fetching employees:', error);
     }
   };
 
-  const refreshSalaryData = async (adminFlag) => {
-    if (adminFlag ?? isAdmin) {
-      await getSalary();
+  const refreshSalaryData = async (page = currentPage) => {
+    if (isAdmin) {
+      await getSalary(page);
     } else {
-      await mySalary();
+      await mySalary(page);
     }
   };
 
-  const salaryUpdate = async (id, salaryPayload) => {
-    try {
-      const response = await updateSalary(id, salaryPayload);
-      if (response.status === 200) {
-        toast.success(response.data?.message || "Salary updated successfully");
-        await refreshSalaryData();
-        cancelEditing();
-      }
-    } catch (error) {
-      console.error("Error updating salary:", error);
-      toast.error(error.response?.data?.message || error.message);
-    }
+  // ── Open Modal for Adding ───────────────────────────────────────
+  const openAddModal = () => {
+    setSelectedId(null);
+    setFormData({
+      userId: '',
+      basicSalary: '',
+      bonus: '',
+      deduction: '',
+      month: '',
+      year: ''
+    });
+    setOpenModal(true);
   };
 
-  const Salaryadd = async (salaryPayload) => {
-    try {
-      const response = await addSalary(salaryPayload);
-      if (response.status === 200 || response.status === 201) {
-        toast.success(response.data?.message || "Salary added successfully");
-        await refreshSalaryData();
-        setFormData({
-          userId: "",
-          basicSalary: "",
-          bonus: "",
-          deduction: "",
-          netsalary: "",
-          month: "",
-          year: ""
-        });
-      }
-    } catch (error) {
-      console.error("Error adding salary:", error);
-      toast.error(error.response?.data?.message || error.message);
-    }
+  // ── Open Modal for Editing ──────────────────────────────────────
+  const openEditModal = (item) => {
+    setSelectedId(item.id);
+    setFormData({
+      userId: item.userId || '',
+      basicSalary: item.basicSalary || '',
+      bonus: item.bonus || '',
+      deduction: item.deduction || '',
+      month: item.month || '',
+      year: item.year || ''
+    });
+    setOpenModal(true);
   };
 
-  const handleSubmit = (e) => {
+  // ── Single Unified Submit Handler (Add & Update) ────────────────
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.userId) {
-      toast.error("Please select an employee");
+
+    if (!selectedId && !formData.userId) {
+      toast.error('Please select an employee');
       return;
     }
 
@@ -108,46 +121,36 @@ function Salary() {
     const netsalary = basic + bonus - deduction;
 
     const salaryPayload = {
-      ...formData,
       basicSalary: basic,
-      bonus: bonus,
-      deduction: deduction,
-      netsalary: netsalary
+      bonus,
+      deduction,
+      netsalary,
+      month: formData.month,
+      year: formData.year
     };
 
-    if (isEditing) {
-      salaryUpdate(selectedId, salaryPayload);
-    } else {
-      Salaryadd(salaryPayload);
+    try {
+      if (selectedId) {
+        // ✏️ Edit Mode (Update existing salary record by selectedId)
+        const response = await updateSalary(selectedId, salaryPayload);
+        if (response.status === 200) {
+          toast.success(response.data?.message || 'Salary updated successfully');
+        }
+      } else {
+        // ➕ Add Mode (Create new salary record)
+        const response = await addSalary({ ...salaryPayload, userId: formData.userId });
+        if (response.status === 200 || response.status === 201) {
+          toast.success(response.data?.message || 'Salary added successfully');
+        }
+      }
+
+      setOpenModal(false);
+      setSelectedId(null);
+      await refreshSalaryData();
+    } catch (error) {
+      console.error('Error saving salary:', error);
+      toast.error(error.response?.data?.message || error.message);
     }
-  };
-
-  const openEditModal = (item) => {
-    setIsEditing(true);
-    setSelectedId(item.id);
-    setFormData({
-      userId: item.userId || "",
-      basicSalary: item.basicSalary || "",
-      bonus: item.bonus || "",
-      deduction: item.deduction || "",
-      netsalary: item.netsalary || "",
-      month: item.month || "",
-      year: item.year || ""
-    });
-  };
-
-  const cancelEditing = () => {
-    setIsEditing(false);
-    setSelectedId(null);
-    setFormData({
-      userId: "",
-      basicSalary: "",
-      bonus: "",
-      deduction: "",
-      netsalary: "",
-      month: "",
-      year: ""
-    });
   };
 
   useEffect(() => {
@@ -155,11 +158,8 @@ function Salary() {
       try {
         const response = await getMe();
         const user = response.data?.user;
-
-        // 1. User state set karo taaki Header par Role badge dikhe
         setCurrentUser(user);
 
-        // 2. Admin ya Accountant check
         const role = (user?.role || '').toLowerCase();
         if (
           role === 'admin' ||
@@ -175,7 +175,7 @@ function Salary() {
           await mySalary();
         }
       } catch (error) {
-        console.error("Error loading salary data:", error);
+        console.error('Error loading salary data:', error);
         await mySalary();
       }
     }
@@ -183,137 +183,52 @@ function Salary() {
     loadData();
   }, []);
 
+  // Jab bhi search ya currentPage badle, naya data fetch ho
+  useEffect(() => {
+    if (currentUser) {
+      refreshSalaryData(currentPage);
+    }
+  }, [search, currentPage]);
+
+  // Helper to find selected employee username when editing
+  const selectedEmpName = selectedId
+    ? salary.find((s) => s.id === selectedId)?.user?.username || `User #${formData.userId}`
+    : '';
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
       <div className="flex-1 p-6 md:p-8 overflow-y-auto">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        {/* Header section with Add Salary button */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Salary Management</h1>
             <p className="text-sm text-gray-500 mt-0.5">
               {isAdmin
-                ? "Manage and view all employee salaries"
-                : "View your personal salary details and history"}
+                ? 'Manage and view all employee salaries'
+                : 'View your personal salary details and history'}
             </p>
           </div>
-          {currentUser && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 capitalize">
-              Role: {currentUser.role || 'Employee'}
-            </span>
-          )}
-        </div>
 
-        {/* Add/Edit Salary Form (Admin Only) */}
-        {isAdmin && (
-          <div className="mb-6 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
-              {isEditing ? '✏️ Edit Salary Record' : '➕ Add New Salary Record'}
-            </h2>
-            <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-center">
-              <select
-                value={formData.userId}
-                onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-                required
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[160px]"
-              >
-                <option value="">Select Employee</option>
-                {employee && employee.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.username} ({emp.email})
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="number"
-                placeholder="Basic Salary"
-                value={formData.basicSalary}
-                onChange={(e) => setFormData({ ...formData, basicSalary: e.target.value })}
-                required
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-32"
-              />
-
-              <input
-                type="number"
-                placeholder="Bonus"
-                value={formData.bonus}
-                onChange={(e) => setFormData({ ...formData, bonus: e.target.value })}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-28"
-              />
-
-              <input
-                type="number"
-                placeholder="Deduction"
-                value={formData.deduction}
-                onChange={(e) => setFormData({ ...formData, deduction: e.target.value })}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-28"
-              />
-
-              <input
-                type="number"
-                placeholder="Net Salary"
-                value={
-                  formData.basicSalary
-                    ? (Number(formData.basicSalary) || 0) + (Number(formData.bonus) || 0) - (Number(formData.deduction) || 0)
-                    : ""
-                }
-                readOnly
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 font-bold text-indigo-700 outline-none w-28 cursor-not-allowed"
-                title="Automatically calculated: Basic + Bonus - Deduction"
-              />
-              <select
-                value={formData.month}
-                onChange={(e) => setFormData({ ...formData, month: e.target.value })}
-                required
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Select Month</option>
-                <option value="January">January</option>
-                <option value="February">February</option>
-                <option value="March">March</option>
-                <option value="April">April</option>
-                <option value="May">May</option>
-                <option value="June">June</option>
-                <option value="July">July</option>
-                <option value="August">August</option>
-                <option value="September">September</option>
-                <option value="October">October</option>
-                <option value="November">November</option>
-                <option value="December">December</option>
-              </select>
-
-              <select
-                value={formData.year}
-                onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                required
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Select Year</option>
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-                <option value="2027">2027</option>
-              </select>
-
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm w-full sm:w-64"
+            />
+            {isAdmin && (
               <button
-                type="submit"
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition cursor-pointer shadow-sm"
+                onClick={openAddModal}
+                className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition cursor-pointer whitespace-nowrap"
               >
-                {isEditing ? 'Update Salary' : 'Add Salary'}
+                <HiPlus className="text-lg" />
+                Add Salary
               </button>
-
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={cancelEditing}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-              )}
-            </form>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Salary Records Table */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -326,7 +241,7 @@ function Salary() {
                 <th className="text-left px-6 py-4">Bonus</th>
                 <th className="text-left px-6 py-4">Deduction</th>
                 <th className="text-left px-6 py-4">Net Salary</th>
-                {isAdmin && <th className="text-left px-6 py-4">Action</th>}
+                {isAdmin && <th className="text-center px-6 py-4">Action</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
@@ -348,17 +263,18 @@ function Salary() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-gray-700">{item.month} {item.year}</td>
-                      <td className="px-6 py-4 text-gray-900">₹{item.basicSalary}</td>
-                      <td className="px-6 py-4 text-green-600 font-medium">+₹{item.bonus}</td>
-                      <td className="px-6 py-4 text-red-500 font-medium">-₹{item.deduction}</td>
+                      <td className="px-6 py-4 text-gray-900 font-medium">₹{item.basicSalary}</td>
+                      <td className="px-6 py-4 text-green-600 font-medium">+₹{item.bonus || 0}</td>
+                      <td className="px-6 py-4 text-red-500 font-medium">-₹{item.deduction || 0}</td>
                       <td className="px-6 py-4 font-bold text-indigo-600">₹{item.netsalary}</td>
                       {isAdmin && (
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <button
                             onClick={() => openEditModal(item)}
-                            className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-sm font-medium transition cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-xs font-semibold transition cursor-pointer"
                           >
-                            Edit
+                            <HiPencil className="text-sm" />
+                            Update
                           </button>
                         </td>
                       )}
@@ -374,8 +290,175 @@ function Salary() {
               )}
             </tbody>
           </table>
+
+          {/* Material Tailwind Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       </div>
+
+      {/* ── Single Unified Modal (Add & Update) ──────────────────────── */}
+      {openModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-xs p-4">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {selectedId ? 'Update Salary Record' : 'Add Salary Record'}
+                </h2>
+                <p className="text-xs text-gray-500">
+                  {selectedId
+                    ? `Update salary details for ${selectedEmpName}`
+                    : 'Create new salary record for an employee'}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setOpenModal(false);
+                  setSelectedId(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg transition cursor-pointer"
+              >
+                <HiX className="text-xl" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              {/* Employee Selection (Dropdown in Add Mode, Readonly in Edit Mode) */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  {selectedId ? 'Employee' : 'Select Employee'}
+                </label>
+                {selectedId ? (
+                  <input
+                    type="text"
+                    readOnly
+                    value={selectedEmpName}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-700 font-medium cursor-not-allowed"
+                  />
+                ) : (
+                  <select
+                    value={formData.userId}
+                    onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">-- Choose Employee --</option>
+                    {employee &&
+                      employee.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.username} ({emp.email})
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Month and Year */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Month</label>
+                  <select
+                    value={formData.month}
+                    onChange={(e) => setFormData({ ...formData, month: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Month</option>
+                    {MONTHS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Year</label>
+                  <select
+                    value={formData.year}
+                    onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Year</option>
+                    {YEARS.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Basic Salary */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Basic Salary (₹)</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 50000"
+                  required
+                  value={formData.basicSalary}
+                  onChange={(e) => setFormData({ ...formData, basicSalary: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Bonus and Deduction */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Bonus (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={formData.bonus}
+                    onChange={(e) => setFormData({ ...formData, bonus: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Deduction (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={formData.deduction}
+                    onChange={(e) => setFormData({ ...formData, deduction: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Net Salary Preview */}
+              <div className="bg-indigo-50/70 border border-indigo-100 p-3 rounded-xl flex items-center justify-between">
+                <span className="text-xs font-semibold text-indigo-900">Calculated Net Salary:</span>
+                <span className="text-base font-bold text-indigo-700">
+                  ₹{Math.max(0, (Number(formData.basicSalary) || 0) + (Number(formData.bonus) || 0) - (Number(formData.deduction) || 0))}
+                </span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenModal(false);
+                    setSelectedId(null);
+                  }}
+                  className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-semibold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm cursor-pointer"
+                >
+                  {selectedId ? 'Update Salary' : 'Add Salary'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
