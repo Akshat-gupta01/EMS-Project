@@ -262,8 +262,11 @@ async function getEmployeeStatusStats(req, res) {
 
         const pending = await User.count({
             where: { 
-                status: "pending",
-                roleId: { [Op.ne]: 1 }
+                status: { [Op.or]: ['pending', null] },
+                [Op.or]: [
+                    { roleId: { [Op.ne]: 1 } },
+                    { roleId: null }
+                ]
             }
         });
 
