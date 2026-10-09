@@ -66,6 +66,7 @@ module.exports = {
         { roleId: 4, permissionId: 4 },  // view_employees
         { roleId: 4, permissionId: 7 },  // apply_leave
         { roleId: 4, permissionId: 8 },  // view_attendance
+        { roleId: 4, permissionId: 15 }, // view_departments
         { roleId: 4, permissionId: 16 }, // view_salary
         { roleId: 4, permissionId: 17 }, // manage_salary
         { roleId: 4, permissionId: 18 }, // update_salary
@@ -74,6 +75,7 @@ module.exports = {
         { roleId: 5, permissionId: 4 },  // view_employees
         { roleId: 5, permissionId: 7 },  // apply_leave
         { roleId: 5, permissionId: 8 },  // view_attendance
+        { roleId: 5, permissionId: 15 }, // view_departments
         { roleId: 5, permissionId: 16 }, // view_salary
     ]);
   },

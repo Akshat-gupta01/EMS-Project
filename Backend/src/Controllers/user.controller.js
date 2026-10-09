@@ -247,15 +247,24 @@ async function updateStatus(req, res) {
 async function getEmployeeStatusStats(req, res) {
     try {
         const active = await User.count({
-            where: { status: "active" }
+            where: { 
+                status: "active",
+                roleId: { [Op.ne]: 1 }
+            }
         });
 
         const inactive = await User.count({
-            where: { status: "inactive" }
+            where: { 
+                status: "inactive",
+                roleId: { [Op.ne]: 1 }
+            }
         });
 
         const pending = await User.count({
-            where: { status: "pending" }
+            where: { 
+                status: "pending",
+                roleId: { [Op.ne]: 1 }
+            }
         });
 
         res.status(200).json({

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { getAllEmployees, updateEmployee, deleteEmployee, getAllRoles, createEmployee } from '../../services/Userservice';
 import { getAllDepartments } from '../../services/Departmentservice';
+import { getMe } from '../../services/Authservice';
+import { hasPermission } from '../../utils/Permission';
 import { HiPencil, HiTrash } from 'react-icons/hi';
 import Sidebar from './Sidebar';
 import Pagination from './Pagination';
@@ -21,6 +23,10 @@ function Employee() {
     departmentId: ''
   });
 
+
+  // Permissions State
+  const [permissions, setPermissions] = useState([]);
+  const [role, setRole] = useState('');
 
   // Search State
   const [search, setSearch] = useState('');
@@ -117,6 +123,16 @@ function Employee() {
   useEffect(() => {
     fetchRoles();
     fetchDepartments();
+    const fetchUserPermissions = async () => {
+      try {
+        const response = await getMe();
+        setPermissions(response.data?.permissions || []);
+        setRole(response.data?.user?.role || '');
+      } catch (err) {
+        console.error("Failed to fetch user permissions:", err);
+      }
+    };
+    fetchUserPermissions();
   }, []);
 
   return (
@@ -140,12 +156,14 @@ function Employee() {
               onChange={(e) => setSearch(e.target.value)}
               className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm w-full sm:w-64"
             />
-            <button
-              onClick={() => setOpenCreateModal(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
-            >
-              <span>+ Add Employee</span>
-            </button>
+            {hasPermission(permissions, 'create_employee', role) && (
+              <button
+                onClick={() => setOpenCreateModal(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-sm hover:shadow transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+              >
+                <span>+ Add Employee</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -240,24 +258,33 @@ function Employee() {
                         </div>
                       ) : (
                         <div className="flex justify-center gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedEmployee(emp);
-                              setOpenModal(true);
-                            }}
-                            className="text-gray-400 hover:text-indigo-600 transition"
-                            title="Edit Employee"
-                          >
-                            <HiPencil className="text-lg" />
-                          </button>
+                          {hasPermission(permissions, 'update_employee', role) && (
+                            <button
+                              onClick={() => {
+                                setSelectedEmployee(emp);
+                                setOpenModal(true);
+                              }}
+                              className="text-gray-400 hover:text-indigo-600 transition"
+                              title="Edit Employee"
+                            >
+                              <HiPencil className="text-lg" />
+                            </button>
+                          )}
 
-                          <button
-                            onClick={() => Deleteuser(emp.id)}
-                            className="text-gray-400 hover:text-red-600 transition"
-                            title="Delete Employee"
-                          >
-                            <HiTrash className="text-lg" />
-                          </button>
+                          {hasPermission(permissions, 'delete_employee', role) && (
+                            <button
+                              onClick={() => Deleteuser(emp.id)}
+                              className="text-gray-400 hover:text-red-600 transition"
+                              title="Delete Employee"
+                            >
+                              <HiTrash className="text-lg" />
+                            </button>
+                          )}
+
+                          {!hasPermission(permissions, 'update_employee', role) &&
+                            !hasPermission(permissions, 'delete_employee', role) && (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
                         </div>
                       )}
                     </td>

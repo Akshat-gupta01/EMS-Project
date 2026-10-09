@@ -13,9 +13,11 @@ import {
   HiDocumentReport
 } from "react-icons/hi";
 import { useState, useEffect } from "react";
+import { hasPermission } from "../../utils/Permission";
 
 export default function AppSidebar() {
-  const [user,setUser] = useState(null)
+  const [user, setUser] = useState(null);
+  const [permissions, setPermissions] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -52,6 +54,7 @@ export default function AppSidebar() {
       const response = await getMe();
       if (response?.data?.user) {
         setUser(response.data.user);
+        setPermissions(response.data.permissions || []);
       }
     } catch (err) {
       console.log(err);
@@ -80,7 +83,9 @@ export default function AppSidebar() {
         {navItem("/dashboard", HiChartPie, "Dashboard")}
         {navItem("/employees", HiUsers, "Employees")}
         {navItem("/attendance", HiCalendar, "Attendance")}
-        {navItem("/attendance-report", HiDocumentReport, "Attendance Report")}
+        {hasPermission(permissions, "view_attendance_reports", user?.role) &&
+          navItem("/attendance-report", HiDocumentReport, "Attendance Report")
+        }
         {navItem("/leave", HiClipboardList, "Leave Management")}
         {navItem("/department", HiOfficeBuilding, "Departments")}
         {navItem("/salary", HiCash, "Salary")}

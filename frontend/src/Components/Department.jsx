@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { HiPencil, HiTrash, HiPlus } from 'react-icons/hi';
 import Sidebar from './Sidebar';
-import { addDepartment,getAllDepartments, updateDepartment, deleteDepartment } from '../../services/Departmentservice';
+import { addDepartment, getAllDepartments, updateDepartment, deleteDepartment } from '../../services/Departmentservice';
+import { getMe } from '../../services/Authservice';
+import { hasPermission } from '../../utils/Permission';
 
 function Department() {
   const [departments, setDepartments] = useState([]); // getall department
@@ -10,7 +12,26 @@ function Department() {
   const [selectedDept, setSelectedDept] = useState(null); // store current selected department data
   const [isEditing, setIsEditing] = useState(false); // for toggle edit and add
   const [search, setSearch] = useState('');
+
+  // Permission State
+  const [permissions, setPermissions] = useState([]);
+  const [role, setRole] = useState('');
   
+  // Initial load par user permissions fetch karein
+  useEffect(() => {
+    const fetchUserPermissions = async () => {
+      try {
+        const response = await getMe();
+        setPermissions(response.data?.permissions || []);
+        setRole(response.data?.user?.role || '');
+      } catch (err) {
+        console.error("Failed to fetch user permissions:", err);
+      }
+    };
+    fetchUserPermissions();
+  }, []);
+
+  // Jab search badle, departments fetch karein
   useEffect(() => {
     getallDepts();
   }, [search]);
@@ -95,12 +116,14 @@ function Department() {
               onChange={(e) => setSearch(e.target.value)}
               className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm w-full sm:w-64"
             />
-            <button
-              onClick={openAddModal}
-              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition whitespace-nowrap"
-            >
-              <HiPlus /> Add Department
-            </button>
+            {hasPermission(permissions, 'create_department', role) && (
+              <button
+                onClick={openAddModal}
+                className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition whitespace-nowrap"
+              >
+                <HiPlus /> Add Department
+              </button>
+            )}
           </div>
         </div>
 
@@ -139,20 +162,28 @@ function Department() {
                     </td> 
                     <td className="py-4 px-6">
                       <div className="flex justify-center gap-3">
-                        <button
-                          onClick={() => openEditModal(dept)}
-                          className="text-gray-400 hover:text-indigo-600 transition"
-                          title="Edit"
-                        >
-                          <HiPencil className="text-lg" />
-                        </button>
-                        <button
-                          onClick={() => deleteDept(dept.id)}
-                          className="text-gray-400 hover:text-red-600 transition"
-                          title="Delete"
-                        >
-                          <HiTrash className="text-lg" />
-                        </button>
+                        {hasPermission(permissions, 'update_department', role) && (
+                          <button
+                            onClick={() => openEditModal(dept)}
+                            className="text-gray-400 hover:text-indigo-600 transition"
+                            title="Edit"
+                          >
+                            <HiPencil className="text-lg" />
+                          </button>
+                        )}
+                        {hasPermission(permissions, 'delete_department', role) && (
+                          <button
+                            onClick={() => deleteDept(dept.id)}
+                            className="text-gray-400 hover:text-red-600 transition"
+                            title="Delete"
+                          >
+                            <HiTrash className="text-lg" />
+                          </button>
+                        )}
+                        {!hasPermission(permissions, 'update_department', role) &&
+                          !hasPermission(permissions, 'delete_department', role) && (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
                       </div>
                     </td>
                   </tr>

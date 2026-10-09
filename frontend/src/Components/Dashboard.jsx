@@ -102,7 +102,7 @@ function Dashboard() {
 
   // Sirf non-admin employees jinki attendance track hoti hai
   const eligibleEmployees = user.filter((u) => !adminIds.has(u.id));
-  const totalEmployees = eligibleEmployees.length;
+  const totalEmployees = statusStats.active + statusStats.inactive + statusStats.pending;
 
   const presentCount = attendance.filter((a) => a.attendance_status?.toLowerCase() === 'present').length;
   const absentCount = attendance.filter((a) => a.attendance_status?.toLowerCase() === 'absent').length;

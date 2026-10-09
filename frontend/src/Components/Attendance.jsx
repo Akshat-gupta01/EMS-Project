@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import Pagination from './Pagination';
 import { getAllEmployees } from '../../services/Userservice';
 import { getAllAttendance, markattendance, updateAttendance } from '../../services/Attendanceservice';
+import { getMe } from '../../services/Authservice';
+import { hasPermission } from '../../utils/Permission';
 
 const STATUS_OPTIONS = [
   {
@@ -33,6 +35,10 @@ function Attendance() {
   const [users, setUsers]             = useState([]);
   const [attendances, setAttendances] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState('active'); // Default 'active' ya '' (All)
+
+  // Permissions State
+  const [permissions, setPermissions] = useState([]);
+  const [role, setRole] = useState('');
 
 // Search State
 const [search, setSearch] = useState('');
@@ -85,9 +91,19 @@ const [totalPages, setTotalPages] = useState(1);
     fetchUser(currentPage);
   }, [search,currentPage]);
 
-  // Initial load par attendance records fetch karo
+  // Initial load par attendance records aur user permissions fetch karo
   useEffect(() => {
     getAttendance();
+    const fetchUserPermissions = async () => {
+      try {
+        const response = await getMe();
+        setPermissions(response.data?.permissions || []);
+        setRole(response.data?.user?.role || '');
+      } catch (err) {
+        console.error("Failed to fetch user permissions:", err);
+      }
+    };
+    fetchUserPermissions();
   }, []);
 
   // ── helper: check if a user already has attendance marked today ──
@@ -153,7 +169,7 @@ const [totalPages, setTotalPages] = useState(1);
                     <th className="py-4 px-5">Employee</th>
                     <th className="py-4 px-5">Department</th>
                     <th className="py-4 px-5">Role</th>
-                    <th className="py-4 px-5 text-center">Action</th>
+                    <th className="py-4 px-5 text-center">Status</th>
                   </tr>
                 </thead>
 
@@ -204,54 +220,88 @@ const [totalPages, setTotalPages] = useState(1);
                             )}
                           </td>
 
-                          {/* Action — Status Buttons */}
+                          {/* Status / Attendance Action */}
                           <td className="py-4 px-5 text-center">
                             {emp.roleId === 1 ? (
                               <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
                                 -
                               </span>
-                            ) : markedStatus ? (
-                              /* Already marked — pill + change buttons */
-                              <div className="inline-flex items-center gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-200">
-                                <span
-                                  className={`px-3 py-1 rounded-lg text-white text-xs font-bold shadow-xs uppercase tracking-wider ${
-                                    markedStatus === 'Present'
-                                      ? 'bg-emerald-600'
-                                      : markedStatus === 'Absent'
-                                      ? 'bg-rose-600'
-                                      : markedStatus === 'Leave'
-                                      ? 'bg-amber-600'
-                                      : 'bg-gray-600'
-                                  }`}
-                                >
-                                  {markedStatus}
-                                </span>
-                                {/* Change buttons */}
-                                <div className="flex items-center gap-1 pl-1 border-l border-gray-200">
-                                  {STATUS_OPTIONS.filter((s) => s.label !== markedStatus).map((s) => (
+                            ) : hasPermission(permissions, 'mark_attendance', role) ||
+                              hasPermission(permissions, 'update_attendance', role) ? (
+                              /* ── Admin / HR: Interactive Action Buttons ── */
+                              markedStatus ? (
+                                /* Already marked — pill + change buttons */
+                                <div className="inline-flex items-center gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-200">
+                                  <span
+                                    className={`px-3 py-1 rounded-lg text-white text-xs font-bold shadow-xs uppercase tracking-wider ${
+                                      markedStatus === 'Present'
+                                        ? 'bg-emerald-600'
+                                        : markedStatus === 'Absent'
+                                        ? 'bg-rose-600'
+                                        : markedStatus === 'Leave'
+                                        ? 'bg-amber-600'
+                                        : 'bg-gray-600'
+                                    }`}
+                                  >
+                                    {markedStatus}
+                                  </span>
+                                  {/* Change buttons */}
+                                  {hasPermission(permissions, 'update_attendance', role) && (
+                                    <div className="flex items-center gap-1 pl-1 border-l border-gray-200">
+                                      {STATUS_OPTIONS.filter((s) => s.label !== markedStatus).map((s) => (
+                                        <button
+                                          key={s.label}
+                                          onClick={() => updateattend(emp, s.label)}
+                                          className={`${s.color} text-xs font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer`}
+                                        >
+                                          {s.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                /* Not yet marked — show buttons */
+                                <div className="inline-flex items-center gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-200">
+                                  {STATUS_OPTIONS.map((s) => (
                                     <button
                                       key={s.label}
-                                      onClick={() => updateattend(emp, s.label)}
-                                      className={`${s.color} text-xs font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer`}
+                                      onClick={() => handleMark(emp, s.label)}
+                                      className={`${s.color} text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer`}
                                     >
                                       {s.label}
                                     </button>
                                   ))}
                                 </div>
-                              </div>
+                              )
                             ) : (
-                              /* Not yet marked — show buttons */
-                              <div className="inline-flex items-center gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-200">
-                                {STATUS_OPTIONS.map((s) => (
-                                  <button
-                                    key={s.label}
-                                    onClick={() => handleMark(emp, s.label)}
-                                    className={`${s.color} text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer`}
-                                  >
-                                    {s.label}
-                                  </button>
-                                ))}
-                              </div>
+                              /* ── Other Employees: Clean Read-Only Status Badge ── */
+                              markedStatus ? (
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                                    markedStatus === 'Present'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : markedStatus === 'Absent'
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      markedStatus === 'Present'
+                                        ? 'bg-emerald-500'
+                                        : markedStatus === 'Absent'
+                                        ? 'bg-rose-500'
+                                        : 'bg-amber-500'
+                                    }`}
+                                  ></span>
+                                  {markedStatus}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-400">
+                                  Not Marked
+                                </span>
+                              )
                             )}
                           </td>
                         </tr>

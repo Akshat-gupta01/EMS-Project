@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getAllSalary, updateSalary, getmySalary, addSalary } from '../../services/Salaryservice';
 import { getAllEmployees } from '../../services/Userservice';
 import { getMe } from '../../services/Authservice';
+import { hasPermission } from '../../utils/Permission';
 import { toast } from 'react-hot-toast';
 import { HiPlus, HiPencil, HiX } from 'react-icons/hi';
 import Sidebar from './Sidebar';
@@ -16,7 +17,8 @@ const YEARS = ['2024', '2025', '2026', '2027', '2028'];
 
 function Salary() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [permissions, setPermissions] = useState([]);
+  const [role, setRole] = useState('');
   const [salary, setSalary] = useState([]);
   const [employee, setEmployee] = useState([]);
 
@@ -71,7 +73,7 @@ function Salary() {
   };
 
   const refreshSalaryData = async (page = currentPage) => {
-    if (isAdmin) {
+    if (hasPermission(permissions, 'manage_salary', role)) {
       await getSalary(page);
     } else {
       await mySalary(page);
@@ -158,20 +160,17 @@ function Salary() {
       try {
         const response = await getMe();
         const user = response.data?.user;
-        setCurrentUser(user);
+        const userPermissions = response.data?.permissions || [];
+        const userRole = user?.role || '';
 
-        const role = (user?.role || '').toLowerCase();
-        if (
-          role === 'admin' ||
-          role === 'accountant' ||
-          user?.roleId === 1 ||
-          user?.roleId === 4
-        ) {
-          setIsAdmin(true);
+        setCurrentUser(user);
+        setPermissions(userPermissions);
+        setRole(userRole);
+
+        if (hasPermission(userPermissions, 'manage_salary', userRole)) {
           await getSalary();
           await fetchEmployee();
         } else {
-          setIsAdmin(false);
           await mySalary();
         }
       } catch (error) {
@@ -195,6 +194,9 @@ function Salary() {
     ? salary.find((s) => s.id === selectedId)?.user?.username || `User #${formData.userId}`
     : '';
 
+  const canManageSalary = hasPermission(permissions, 'manage_salary', role);
+  const canUpdateSalary = hasPermission(permissions, 'update_salary', role);
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
@@ -204,7 +206,7 @@ function Salary() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Salary Management</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {isAdmin
+              {canManageSalary
                 ? 'Manage and view all employee salaries'
                 : 'View your personal salary details and history'}
             </p>
@@ -218,7 +220,7 @@ function Salary() {
               onChange={(e) => setSearch(e.target.value)}
               className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm w-full sm:w-64"
             />
-            {isAdmin && (
+            {canManageSalary && (
               <button
                 onClick={openAddModal}
                 className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm transition cursor-pointer whitespace-nowrap"
@@ -241,14 +243,14 @@ function Salary() {
                 <th className="text-left px-6 py-4">Bonus</th>
                 <th className="text-left px-6 py-4">Deduction</th>
                 <th className="text-left px-6 py-4">Net Salary</th>
-                {isAdmin && <th className="text-center px-6 py-4">Action</th>}
+                {canUpdateSalary && <th className="text-center px-6 py-4">Action</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
               {salary && salary.length > 0 ? (
                 salary.map((item) => {
-                  const name = item.user?.username || (currentUser && !isAdmin ? currentUser.username : `User #${item.userId}`);
-                  const email = item.user?.email || (currentUser && !isAdmin ? currentUser.email : '');
+                  const name = item.user?.username || (currentUser && !canManageSalary ? currentUser.username : `User #${item.userId}`);
+                  const email = item.user?.email || (currentUser && !canManageSalary ? currentUser.email : '');
                   return (
                     <tr key={item.id} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4">
@@ -267,7 +269,7 @@ function Salary() {
                       <td className="px-6 py-4 text-green-600 font-medium">+₹{item.bonus || 0}</td>
                       <td className="px-6 py-4 text-red-500 font-medium">-₹{item.deduction || 0}</td>
                       <td className="px-6 py-4 font-bold text-indigo-600">₹{item.netsalary}</td>
-                      {isAdmin && (
+                      {canUpdateSalary && (
                         <td className="px-6 py-4 text-center">
                           <button
                             onClick={() => openEditModal(item)}
@@ -283,7 +285,7 @@ function Salary() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} className="text-center py-10 text-gray-400">
+                  <td colSpan={canUpdateSalary ? 7 : 6} className="text-center py-10 text-gray-400">
                     No salary records found
                   </td>
                 </tr>
