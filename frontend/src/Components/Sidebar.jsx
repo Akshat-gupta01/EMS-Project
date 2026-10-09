@@ -67,15 +67,19 @@ export default function AppSidebar() {
 
   return (
     <aside className="w-64 h-screen sticky top-0 shrink-0 bg-[#0f172a] border-r border-slate-800 flex flex-col shadow-lg z-20">
-      {/* Brand Header */}
-      <div className="p-5 border-b border-slate-800 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-indigo-950">
-          E
-        </div>
-        <div>
-          <h2 className="text-base font-bold text-white tracking-wide leading-tight">EMS Portal</h2>
-          <p className="text-xs text-slate-400">Admin Workspace</p>
-        </div>
+      {/* Brand Header with Softfix Logo */}
+      <div className="px-4 py-3.5 border-b border-slate-800/80 flex items-center justify-center bg-slate-900/40">
+        <Link to="/dashboard" className="w-full flex flex-col items-center justify-center group py-0.5">
+          <img
+            src="/logo.jpg"
+            alt="Softfix EMS"
+            className="w-full max-h-12 object-contain rounded-lg shadow-xs transition-transform duration-200 group-hover:scale-[1.02]"
+          />
+          <div className="text-center mt-2.5">
+            <h2 className="text-sm font-bold text-white tracking-wider leading-tight">EMS PORTAL</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Admin Workspace</p>
+          </div>
+        </Link>
       </div>
 
       {/* Navigation */}
