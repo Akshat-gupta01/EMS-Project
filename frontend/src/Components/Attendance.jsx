@@ -36,7 +36,8 @@ function Attendance() {
   const [attendances, setAttendances] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState('active'); // Default 'active' ya '' (All)
 
-  // Permissions State
+  // Permissions & Current User State
+  const [currentUser, setCurrentUser] = useState(null);
   const [permissions, setPermissions] = useState([]);
   const [role, setRole] = useState('');
 
@@ -63,8 +64,7 @@ const [totalPages, setTotalPages] = useState(1);
   // ── fetch all employees ──────────────────────────────────────────
   const fetchUser = async (page = currentPage) => {
     try {
-      const response = await getAllEmployees(page, 10, selectedStatus,search);
-      console.log(response);
+      const response = await getAllEmployees(page, 10, selectedStatus, search);
       setUsers(response.data?.user || []);
       setTotalPages(response.data?.totalPages || 1);
     } catch (err) {
@@ -97,6 +97,7 @@ const [totalPages, setTotalPages] = useState(1);
     const fetchUserPermissions = async () => {
       try {
         const response = await getMe();
+        setCurrentUser(response.data?.user || null);
         setPermissions(response.data?.permissions || []);
         setRole(response.data?.user?.role || '');
       } catch (err) {
@@ -127,6 +128,14 @@ const [totalPages, setTotalPages] = useState(1);
       toast.error('Error marking attendance');
     }
   };
+
+  const userRole = (role || currentUser?.role || '').toLowerCase();
+  const isPrivileged = userRole === 'admin' || userRole === 'hr';
+
+  // Admin/HR ko sabhi employees dikhenge, Normal Employee ko direct apna record dikhega:
+  const displayedUsers = isPrivileged
+    ? users
+    : (currentUser ? [currentUser] : []);
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -174,14 +183,14 @@ const [totalPages, setTotalPages] = useState(1);
                 </thead>
 
                 <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                  {users.length === 0 ? (
+                  {displayedUsers.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="py-12 text-center text-gray-400">
                         No employees found
                       </td>
                     </tr>
                   ) : (
-                    users.map((emp, idx) => {
+                    displayedUsers.map((emp, idx) => {
                       const markedStatus = getMarkedStatus(emp.id);
                       return (
                         <tr key={emp.id} className="hover:bg-gray-50/60 transition-colors">
@@ -212,16 +221,16 @@ const [totalPages, setTotalPages] = useState(1);
 
                           {/* Department */}
                           <td className="py-4 px-5 text-sm text-gray-600">
-                            {emp.department?.departmentName || (
+                            {emp.department?.departmentName || emp.department || (
                               <span className="text-xs text-gray-400 italic">Not Assigned</span>
                             )}
                           </td>
 
                           {/* Role */}
                           <td className="py-4 px-5 text-sm text-gray-600">
-                            {emp.Role ? (
+                            {emp.Role?.name || emp.role ? (
                               <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                {emp.Role.name}
+                                {emp.Role?.name || emp.role}
                               </span>
                             ) : (
                               <span className="text-xs text-gray-400 italic">Pending Approval</span>
@@ -234,9 +243,8 @@ const [totalPages, setTotalPages] = useState(1);
                               <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
                                 -
                               </span>
-                            ) : hasPermission(permissions, 'mark_attendance', role) ||
-                              hasPermission(permissions, 'update_attendance', role) ? (
-                              /* ── Admin / HR: Interactive Action Buttons ── */
+                            ) : isPrivileged ? (
+                              /* ── Admin / HR: Interactive 3 Action Buttons ── */
                               markedStatus ? (
                                 /* Already marked — pill + change buttons */
                                 <div className="inline-flex items-center gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-200">
@@ -254,22 +262,20 @@ const [totalPages, setTotalPages] = useState(1);
                                     {markedStatus}
                                   </span>
                                   {/* Change buttons */}
-                                  {hasPermission(permissions, 'update_attendance', role) && (
-                                    <div className="flex items-center gap-1 pl-1 border-l border-gray-200">
-                                      {STATUS_OPTIONS.filter((s) => s.label !== markedStatus).map((s) => (
-                                        <button
-                                          key={s.label}
-                                          onClick={() => updateattend(emp, s.label)}
-                                          className={`${s.color} text-xs font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer`}
-                                        >
-                                          {s.label}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
+                                  <div className="flex items-center gap-1 pl-1 border-l border-gray-200">
+                                    {STATUS_OPTIONS.filter((s) => s.label !== markedStatus).map((s) => (
+                                      <button
+                                        key={s.label}
+                                        onClick={() => updateattend(emp, s.label)}
+                                        className={`${s.color} text-xs font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer`}
+                                      >
+                                        {s.label}
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
                               ) : (
-                                /* Not yet marked — show buttons */
+                                /* Not yet marked — show 3 buttons */
                                 <div className="inline-flex items-center gap-1.5 p-1 bg-gray-50 rounded-xl border border-gray-200">
                                   {STATUS_OPTIONS.map((s) => (
                                     <button
@@ -283,7 +289,7 @@ const [totalPages, setTotalPages] = useState(1);
                                 </div>
                               )
                             ) : (
-                              /* ── Other Employees: Clean Read-Only Status Badge ── */
+                              /* ── Manager, Accountant, Employee: Single Mark Button or Read-Only Status ── */
                               markedStatus ? (
                                 <span
                                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
@@ -306,9 +312,13 @@ const [totalPages, setTotalPages] = useState(1);
                                   {markedStatus}
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-400">
-                                  Not Marked
-                                </span>
+                                <button
+                                  onClick={() => handleMark(emp, 'Present')}
+                                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                  Mark Attendance
+                                </button>
                               )
                             )}
                           </td>
@@ -320,12 +330,14 @@ const [totalPages, setTotalPages] = useState(1);
               </table>
             </div>
 
-            {/* Material Tailwind Pagination */}
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(page) => setCurrentPage(page)}
-            />
+            {/* Material Tailwind Pagination (Only for Admin/HR) */}
+            {isPrivileged && totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => setCurrentPage(page)}
+              />
+            )}
           </div>
 
         </div>

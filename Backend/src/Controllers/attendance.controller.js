@@ -1,20 +1,28 @@
 const { Op } = require('sequelize');
 const { Attendance, User, Department } = require('../models');
 
+
+
 async function markAttendance(req,res){
     try {
-        const {userId,attendance_status,date}=req.body;
-         const existingRecord = await Attendance.findOne({
-            where: { userId, date }
-        });
+        const {attendance_status,date}=req.body;
 
+        const roleName = req.user.Role?.name?.toLowerCase();
+
+        const isAdminOrHr = roleName === 'admin' || roleName === 'hr';
+
+        const targetUserId = isAdminOrHr ? (req.body.userId || req.user.id) : req.user.id;
+        const existingRecord = await Attendance.findOne({
+            where: { userId: targetUserId, date }
+        });
+        
         if(existingRecord){
-            return res.status(400).json({
+            return res.status(400).json({ 
                 message:"Attendance already marked"
             })
         }
         const newAttendance = await Attendance.create({
-            userId,
+            userId:targetUserId,
             attendance_status,
             date
         });
@@ -32,8 +40,17 @@ async function markAttendance(req,res){
 async function getallAttendance(req,res) {
    try{
     const date = req.query.date || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+
+    const roleName = req.user.Role?.name?.toLowerCase();
+    const isAdminOrHR = roleName === "admin" || roleName === "hr";
+
+    let whereCondition = { date: date };
+    if (!isAdminOrHR) {
+      whereCondition.userId = req.user.id;
+    }
+
     const attendance=await Attendance.findAll({
-     where:{date:date},
+     where: whereCondition,
      include: [
     {
       model: User,
@@ -84,13 +101,15 @@ async function updateAttendance(req,res) {
 
 async function getallAttendancereport(req, res) {
   try {
-    const { startDate, endDate, userId, departmentId } = req.query;
+    const { startDate, endDate, departmentId } = req.query;
 
     // 1. Pagination Parameters (Default: Page 1, Limit 10)
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
 
+
+    
     // 2. Filter Condition
     let whereCondition = {};
     if (startDate && endDate) {
@@ -99,8 +118,14 @@ async function getallAttendancereport(req, res) {
       };
     }
 
-    if (userId) {
-      whereCondition.userId = userId;
+    
+    const roleName = req.user.Role?.name?.toLowerCase();
+    const isAdminOrHR = roleName === "admin" || roleName === "hr" || roleName === "manager";
+
+    if (!isAdminOrHR) { 
+      whereCondition.userId = req.user.id;
+    } else if (req.query.userId) {
+      whereCondition.userId = req.query.userId;
     }
 
     // 3. findAndCountAll with Limit & Offset

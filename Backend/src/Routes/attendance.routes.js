@@ -6,9 +6,9 @@ const router=express.Router();
 
 // Applying middleware to all attendance routes
 
-router.post('/mark',checkforAuth,checkPermission('mark_attendance'),markAttendance);
+router.post('/mark', checkforAuth, markAttendance);
 router.get('/get-attendance',checkforAuth,checkPermission('view_attendance'),getallAttendance);
 router.patch('/attendance/:id',checkforAuth,checkPermission('update_attendance'),updateAttendance);
-router.get('/attendance-report',checkforAuth,checkPermission('view_attendance_reports'),getallAttendancereport);
+router.get('/attendance-report', checkforAuth, getallAttendancereport);
 
 module.exports=router;

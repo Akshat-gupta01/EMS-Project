@@ -11,7 +11,16 @@ async function checkforAuth(req,res,next) {
     try {
         const decoded=jwt.verify(token,process.env.JWT_SECRET)
         console.log(decoded);
-        req.user=decoded; // attaching user to request
+        const user=await User.findByPk(decoded.id,{
+            include:['Role']
+        });
+
+        if(!user){
+            return res.status(401).json({
+                message:"User Not Found"
+            })
+        }
+        req.user=user; // attaching user to request
         next()  
     } catch (error) {
         res.status(401).json({

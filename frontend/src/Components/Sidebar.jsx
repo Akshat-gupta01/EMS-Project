@@ -67,17 +67,19 @@ export default function AppSidebar() {
 
   return (
     <aside className="w-64 h-screen sticky top-0 shrink-0 bg-[#0f172a] border-r border-slate-800 flex flex-col shadow-lg z-20">
-      {/* Brand Header with Softfix Logo */}
-      <div className="px-4 py-3.5 border-b border-slate-800/80 flex items-center justify-center bg-slate-900/40">
-        <Link to="/dashboard" className="w-full flex flex-col items-center justify-center group py-0.5">
-          <img
-            src="/logo.jpg"
-            alt="Softfix EMS"
-            className="w-full max-h-12 object-contain rounded-lg shadow-xs transition-transform duration-200 group-hover:scale-[1.02]"
-          />
-          <div className="text-center mt-2.5">
-            <h2 className="text-sm font-bold text-white tracking-wider leading-tight">EMS PORTAL</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Admin Workspace</p>
+      {/* Brand Header */}
+      <div className="px-5 py-4 border-b border-slate-800/80 bg-slate-900/40">
+        <Link to="/dashboard" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform">
+            <HiUsers />
+          </div>
+          <div>
+            <h2 className="text-base font-extrabold text-white tracking-wider leading-tight">
+              SOFTFIX
+            </h2>
+            <p className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mt-0.5">
+              EMPLOYEE MANAGEMENT SYSTEM
+            </p>
           </div>
         </Link>
       </div>
@@ -87,9 +89,7 @@ export default function AppSidebar() {
         {navItem("/dashboard", HiChartPie, "Dashboard")}
         {navItem("/employees", HiUsers, "Employees")}
         {navItem("/attendance", HiCalendar, "Attendance")}
-        {hasPermission(permissions, "view_attendance_reports", user?.role) &&
-          navItem("/attendance-report", HiDocumentReport, "Attendance Report")
-        }
+        {navItem("/attendance-report", HiDocumentReport, "Attendance Report")}
         {navItem("/leave", HiClipboardList, "Leave Management")}
         {navItem("/department", HiOfficeBuilding, "Departments")}
         {navItem("/salary", HiCash, "Salary")}

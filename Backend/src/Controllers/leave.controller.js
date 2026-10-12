@@ -67,9 +67,18 @@ async function leaveGetAll(req, res) {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const offset = (page - 1) * limit;
+        const roleName = req.user.Role?.name?.toLowerCase();
+        const isAdminOrHR = roleName === "admin" || roleName === "hr" || roleName === "manager";
+
+        let whereCondition = {};
+        if (!isAdminOrHR) {
+            whereCondition.userId = req.user.id;
+        }
+
 
         // 2. findAndCountAll with Limit & Offset
         const { count, rows } = await Leave.findAndCountAll({
+            where:whereCondition,
             limit: limit,
             offset: offset,
             include: [{ model: User, as: 'user', attributes: ['id', 'username', 'email'] }],
