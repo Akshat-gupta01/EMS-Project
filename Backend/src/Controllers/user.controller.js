@@ -1,7 +1,7 @@
 const {User, Role, Department} = require('../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { Op, where } = require('sequelize');
+const { Op } = require('sequelize');
 
 async function createEmployee(req, res) {
     try {
@@ -60,12 +60,13 @@ async function getallUsers(req, res) {
     }
 
     // 3. findAndCountAll with Limit & Offset
-    const { count, rows } = await User.findAndCountAll({
+    const { count, rows } = await User.findAndCountAll({        
       where: whereCondition,
+      distinct: true,
       limit: limit,
       offset: offset,
       order: [['id', 'ASC']],
-      attributes: ['id', 'username', 'email', 'status', 'departmentId', 'roleId'],
+      attributes: ['id', 'username', 'email', 'status', 'departmentId', 'roleId', 'profilePhoto'],
       include: [
         {
           model: Role,

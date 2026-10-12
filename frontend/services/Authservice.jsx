@@ -20,3 +20,15 @@ export const getMe = async () => {
     return api.get("/api/auth/me");
 }
 
+export const uploadProfileImage = async (file, userId = null) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    if (userId) {
+        formData.append('userId', userId);
+    }
+    return await api.post('/api/auth/upload-image', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+};

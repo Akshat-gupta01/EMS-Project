@@ -192,9 +192,17 @@ const [totalPages, setTotalPages] = useState(1);
                           {/* Employee Name + Avatar Initial */}
                           <td className="py-4 px-5">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-xs shadow-2xs shrink-0">
-                                {emp.username ? emp.username.substring(0, 2).toUpperCase() : 'EM'}
-                              </div>
+                              {emp.profilePhoto ? (
+                                <img
+                                  src={`http://localhost:3000/uploads/${emp.profilePhoto}`}
+                                  alt={emp.username}
+                                  className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0 shadow-2xs"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-xs shadow-2xs shrink-0">
+                                  {emp.username ? emp.username.substring(0, 2).toUpperCase() : 'EM'}
+                                </div>
+                              )}
                               <div>
                                 <p className="font-semibold text-gray-800 leading-tight">{emp.username}</p>
                                 <p className="text-xs text-gray-400 mt-0.5">Employee ID: #{emp.id}</p>

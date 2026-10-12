@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { getAllEmployees, updateEmployee, deleteEmployee, getAllRoles, createEmployee } from '../../services/Userservice';
 import { getAllDepartments } from '../../services/Departmentservice';
-import { getMe } from '../../services/Authservice';
+import { getMe, uploadProfileImage } from '../../services/Authservice';
 import { hasPermission } from '../../utils/Permission';
 import { HiPencil, HiTrash } from 'react-icons/hi';
 import Sidebar from './Sidebar';
 import Pagination from './Pagination';
 import toast from 'react-hot-toast';
+
 
 function Employee() {
   const [employees, setEmployees] = useState([]); // All employees list
@@ -22,6 +23,13 @@ function Employee() {
     roleId: '',
     departmentId: ''
   });
+
+  // Profile Image Upload State for Edit
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+
+  // Profile Image Upload State for Create
+  const [createImage, setCreateImage] = useState(null);
 
 
   // Permissions State
@@ -52,9 +60,16 @@ function Employee() {
   const handleEditEmployee = async (e) => {
     if (e) e.preventDefault();
     try {
+      // 1. Agar image select hui hai toh pehle upload API call hogi
+      if (selectedImage) {
+        await uploadProfileImage(selectedImage, selectedEmployee.id);
+      }
+
+      // 2. Phir baaki details update hongi
       const response = await updateEmployee(selectedEmployee.id, selectedEmployee);
       console.log(response);
       setOpenModal(false);
+      setSelectedImage(null);
       fetchusers();
       if (response.data?.message) {
         toast.success(response.data.message);
@@ -101,14 +116,20 @@ function Employee() {
   const handleCreateEmployee = async (e) => {
     if (e) e.preventDefault();
     try {
+      // 1. Pehle employee create hoga
       const response = await createEmployee(formData);
-      console.log(response);
+      const newUserId = response.data?.user?.id;
+
+      // 2. Agar image choose ki thi toh newly created employee ki ID ke sath upload hogi
+      if (createImage && newUserId) {
+        await uploadProfileImage(createImage, newUserId);
+      }
+
       setOpenCreateModal(false);
+      setCreateImage(null);
       setFormData({ username: '', email: '', password: '', roleId: '', departmentId: '' });
       fetchusers();
-      if (response.data?.message) {
-        toast.success(response.data.message);
-      }
+      toast.success(response.data?.message || "Employee created successfully");
     } catch (err) {
       console.log(err);
       toast.error(err.response?.data?.message || "Error creating employee");
@@ -195,11 +216,26 @@ function Employee() {
                    <td className="py-4 px-6 text-sm font-bold text-gray-400">
                         {emp.id}
                    </td>
-                   <td className="py-4 px-6 text-sm font-bold text-gray-400">
-                        {emp.username}
+                   <td className="py-4 px-6 text-sm font-bold text-gray-700">
+                     <div className="flex items-center gap-3">
+                       {emp.profilePhoto ? (
+                         <img
+                           src={`http://localhost:3000/uploads/${emp.profilePhoto}`}
+                           alt={emp.username}
+                           className="w-10 h-10 rounded-full object-cover border border-gray-200 shrink-0 shadow-2xs"
+                         />
+                       ) : (
+                         <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-xs shadow-2xs shrink-0">
+                           {emp.username ? emp.username.substring(0, 2).toUpperCase() : 'EM'}
+                         </div>
+                       )}
+                       <div>
+                         <p className="font-semibold text-gray-800 leading-tight">{emp.username}</p>
+                       </div>
+                     </div>
                    </td>
                    <td className="py-4 px-6 text-sm font-bold text-gray-400">
-                        {emp.email}
+                        {emp.email} 
                    </td>
 
                     {/* Role */}
@@ -262,6 +298,8 @@ function Employee() {
                             <button
                               onClick={() => {
                                 setSelectedEmployee(emp);
+                                setSelectedImage(null);
+                                setPreviewUrl(emp.profilePhoto ? `http://localhost:3000/uploads/${emp.profilePhoto}` : '');
                                 setOpenModal(true);
                               }}
                               className="text-gray-400 hover:text-indigo-600 transition"
@@ -411,7 +449,7 @@ function Employee() {
                         status: e.target.value,
                       })
                     }
-                    className="border border-gray-300 p-2.5 w-full rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                 className="border border-gray-300 p-2.5 w-full rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   >
                     <option value="active">Active</option>
                     <option value="pending">Pending</option>
@@ -419,6 +457,32 @@ function Employee() {
                   </select>
                 </div>
               )}
+
+              {/* Profile Image Upload */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Profile Photo</label>
+                <div className="flex items-center gap-3">
+                  {previewUrl && (
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setSelectedImage(file);
+                        setPreviewUrl(URL.createObjectURL(file)); // instant frontend preview
+                      }
+                    }}
+                    className="border border-gray-300 p-1.5 w-full rounded-lg text-xs file:mr-3 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  />
+                </div>
+              </div>
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-2 pt-3 border-t">
@@ -519,6 +583,16 @@ function Employee() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Profile Photo (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setCreateImage(e.target.files[0])}
+                  className="border border-gray-300 p-1.5 w-full rounded-lg text-xs file:mr-3 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-indigo-50 file:text-indigo-700"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t">

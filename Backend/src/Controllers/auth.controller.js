@@ -1,12 +1,9 @@
-const {User, Role, Permission, Department}=require('../models')
-const {Otp}=require('../models')
+const {User, Role, Permission, Department,Otp}=require('../models');
 const bcrypt=require('bcrypt');
 const jwt=require('jsonwebtoken');
-const multer=require('multer')
-const { where } = require('sequelize');
+const multer = require('multer');
 const sendEmail=require('../services/email.services');
 const {generateOtp,getOtpHtml}=require('../utils/utils');
-
 
 async function registerUser(req, res) {
     try {
@@ -282,7 +279,8 @@ async function uploadImage(req, res) {
         if (!req.file) {
             return res.status(400).json({ message: "No file uploaded" });
         }
-        await User.update({ profilePhoto: req.file.filename }, { where: { id: req.user.id } });
+        const targetUserId = req.body.userId || req.user.id;
+        await User.update({ profilePhoto: req.file.filename }, { where: { id: targetUserId } });
         res.status(200).json({ message: "Image uploaded successfully", filename: req.file.filename });
     } catch (error) {
         console.error("Error in uploadImage:", error);

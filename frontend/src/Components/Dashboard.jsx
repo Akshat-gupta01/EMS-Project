@@ -315,11 +315,11 @@ function Dashboard() {
               </span>
             </div>
 
-            <div className="relative w-full h-72 flex items-center justify-center">
+            <div className="relative w-full h-72 flex items-center justify-center group">
               <Doughnut data={doughnutData} options={doughnutOptions} />
 
-              {/* Center Total Count Overlay */}
-              <div className="absolute flex flex-col items-center pointer-events-none">
+              {/* Center Total Count Overlay (Hover par hide ho jayega taaki tooltip clean dikhe) */}
+              <div className="absolute flex flex-col items-center pointer-events-none group-hover:opacity-0 transition-opacity duration-150">
                 <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
                   Total Marked
                 </span>
