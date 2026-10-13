@@ -40,7 +40,7 @@ async function createEmployee(req, res) {
 
 async function getallUsers(req, res) {
   try {
-    const { status, search } = req.query;
+    const { status, search, departmentId } = req.query;
 
     // 1. Pagination Parameters (Default: Page 1, Limit 10)
     const page = parseInt(req.query.page) || 1; // current page
@@ -51,6 +51,10 @@ async function getallUsers(req, res) {
     const whereCondition = {};
     if (status) {
       whereCondition.status = status;
+    }
+
+    if (departmentId) {
+      whereCondition.departmentId = departmentId;
     }
 
     if (search) {

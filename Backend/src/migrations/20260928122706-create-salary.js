@@ -36,6 +36,10 @@ module.exports = {
       year: {
         type: Sequelize.STRING
       },
+      paymentStatus: {
+        type: Sequelize.ENUM('pending', 'approved', 'paid', 'onhold'),
+        defaultValue: 'pending'
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

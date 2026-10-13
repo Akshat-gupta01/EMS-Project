@@ -3,9 +3,17 @@ const { Op } = require('sequelize');
 
 async function addSalary(req,res) {
     try {
-        const {userId,basicSalary,bonus,deduction,netsalary,month,year} = req.body;
+        const {userId,basicSalary,bonus,deduction,netsalary,month,year,paymentStatus} = req.body;
 
-        const salary = await Salary.create({userId,basicSalary,bonus,deduction,netsalary,month,year});
+        const salary = await Salary.create({
+            userId,
+            basicSalary,
+            bonus,
+            deduction,
+            netsalary,
+            month,
+            year,
+            paymentStatus:paymentStatus||'pending'});
 
         return res.status(200).json({message:"Salary added successfully",salary});
 
@@ -28,6 +36,7 @@ async function updateSalary(req,res) {
             netsalary: req.body.netsalary,
             month: req.body.month,
             year: req.body.year,
+            paymentStatus:req.body.paymentStatus
         },{where:{id}});
 
         return res.status(200).json({message:"Salary updated successfully",salary});
@@ -39,12 +48,18 @@ async function updateSalary(req,res) {
 
 async function getAllSalary(req, res) {
     try {
-        const { search } = req.query;
+        const { search,month,year,paymentStatus } = req.query;
 
         // 1. Pagination Parameters (Default: Page 1, Limit 10)
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const offset = (page - 1) * limit;
+
+        // 1. Salary table ke filters
+        const salaryWhere = {};
+        if (month) salaryWhere.month = month;
+        if (year) salaryWhere.year = year;
+        if (paymentStatus) salaryWhere.paymentStatus = paymentStatus;
 
         // 2. Search Condition on User (Employee Name)
         const userWhere = {};
@@ -54,6 +69,7 @@ async function getAllSalary(req, res) {
 
         // 3. findAndCountAll with Limit & Offset
         const { count, rows } = await Salary.findAndCountAll({
+            where: salaryWhere,
             limit: limit,
             offset: offset,
             distinct: true,

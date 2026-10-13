@@ -1,11 +1,11 @@
 import api from "../utils/axios";
 
-export const getAllEmployees = async (page = 1, limit = 10, status,search) => {
+export const getAllEmployees = async (page = 1, limit = 10, status, search, departmentId) => {
   if (typeof page === 'string') {
     return api.get("/api/user/get-all-users", { params: { status: page } });
   }
   return api.get("/api/user/get-all-users", {
-    params: { page, limit, status,search }
+    params: { page, limit, status, search, departmentId }
   });
 };
 

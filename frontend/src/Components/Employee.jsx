@@ -45,15 +45,30 @@ function Employee() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+
+  //filter states define 
+  
+const [selectedDepartment, setSelectedDepartment] = useState('');
+const [selectedStatus, setSelectedStatus] = useState('');
+
+// 2. Clear Filters Button Handler
+const handleClearFilters = () => {
+  setSelectedDepartment('');
+  setSelectedStatus('');
+  setSearch('');
+  setCurrentPage(1);
+};
+
   const fetchusers = async (page = currentPage) => {
     try {
-      const response = await getAllEmployees(page, itemsPerPage,'',search);
+      const response = await getAllEmployees(page, itemsPerPage, selectedStatus, search, selectedDepartment);
       console.log(response);
       setEmployees(response.data?.user || []);
       setTotalPages(response.data?.totalPages || 1);
       setTotalCount(response.data?.totalCount || 0);
     } catch (err) {
-      console.log(err);
+      console.error("Failed to fetch employees:", err);
+      toast.error("Failed to fetch employees");
     }
   };
 
@@ -139,7 +154,7 @@ function Employee() {
 
   useEffect(() => {
     fetchusers(currentPage);
-  }, [search,currentPage]);
+  }, [search,currentPage,selectedStatus,selectedDepartment]);
 
   useEffect(() => {
     fetchRoles();
@@ -186,6 +201,62 @@ function Employee() {
               </button>
             )}
           </div>
+        </div>
+
+        {/* ── Filter Bar Card ── */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* 1. Department Filter Dropdown */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Department
+              </label>
+              <select
+                value={selectedDepartment}
+                onChange={(e) => {
+                  setSelectedDepartment(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-xs min-w-[170px]"
+              >
+                <option value="">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.departmentName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. Status Filter Dropdown */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Status
+              </label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-xs min-w-[150px]"
+              >
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 3. Right Side: Clear Filters Button */}
+          <button
+            onClick={handleClearFilters}
+            className="self-end md:self-center inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition shadow-xs cursor-pointer hover:text-gray-800"
+          >
+            <span className="text-base">⟳</span>
+            <span>Clear Filters</span>
+          </button>
         </div>
 
         {/* Table Card */}

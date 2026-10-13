@@ -49,6 +49,17 @@ const [currentPage, setCurrentPage] = useState(1);
 const [totalPages, setTotalPages] = useState(1);
 
 
+// filter
+const [selectedAttendanceStatus, setSelectedAttendanceStatus] = useState(''); 
+
+// Clear Filters Button Handler
+const handleClearFilters = () => {
+  setSelectedAttendanceStatus('');
+  setSearch('');
+  setCurrentPage(1);
+};
+
+
   // ── fetch today's attendance records ─────────────────────────────
   const getAttendance = async () => {
     try {
@@ -137,6 +148,16 @@ const [totalPages, setTotalPages] = useState(1);
     ? users
     : (currentUser ? [currentUser] : []);
 
+  // Filter based on selectedAttendanceStatus
+  const filteredUsers = displayedUsers.filter((emp) => {
+    if (!selectedAttendanceStatus) return true;
+    const markedStatus = getMarkedStatus(emp.id);
+    if (selectedAttendanceStatus === 'Not Marked') {
+      return !markedStatus;
+    }
+    return markedStatus?.toLowerCase() === selectedAttendanceStatus.toLowerCase();
+  });
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
@@ -168,6 +189,41 @@ const [totalPages, setTotalPages] = useState(1);
             </div>
           </div>
 
+          {/* ── Filter Bar Card ── */}
+          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Attendance Status Filter Dropdown */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Attendance Status
+                </label>
+                <select
+                  value={selectedAttendanceStatus}
+                  onChange={(e) => {
+                    setSelectedAttendanceStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-xs min-w-[170px]"
+                >
+                  <option value="">All Attendance</option>
+                  <option value="Present">Present</option>
+                  <option value="Absent">Absent</option>
+                  <option value="Leave">Leave</option>
+                  <option value="Not Marked">Not Marked</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Right Side: Clear Filters Button */}
+            <button
+              onClick={handleClearFilters}
+              className="self-end md:self-center inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition shadow-xs cursor-pointer hover:text-gray-800"
+            >
+              <span className="text-base">⟳</span>
+              <span>Clear Filters</span>
+            </button>
+          </div>
+
           {/* ── Table Card ── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
@@ -183,14 +239,14 @@ const [totalPages, setTotalPages] = useState(1);
                 </thead>
 
                 <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                  {displayedUsers.length === 0 ? (
+                  {filteredUsers.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="py-12 text-center text-gray-400">
                         No employees found
                       </td>
                     </tr>
                   ) : (
-                    displayedUsers.map((emp, idx) => {
+                    filteredUsers.map((emp, idx) => {
                       const markedStatus = getMarkedStatus(emp.id);
                       return (
                         <tr key={emp.id} className="hover:bg-gray-50/60 transition-colors">

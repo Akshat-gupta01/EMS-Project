@@ -4,7 +4,7 @@ import { getAllEmployees } from '../../services/Userservice';
 import { getMe } from '../../services/Authservice';
 import { hasPermission } from '../../utils/Permission';
 import { toast } from 'react-hot-toast';
-import { HiPlus, HiPencil, HiX } from 'react-icons/hi';
+import { HiPlus, HiPencil, HiX, HiFilter } from 'react-icons/hi';
 import Sidebar from './Sidebar';
 import Pagination from './Pagination';
 
@@ -31,7 +31,8 @@ function Salary() {
     bonus: '',
     deduction: '',
     month: '',
-    year: ''
+    year: '',
+    paymentStatus: 'pending'
   });
 
   const [selectedStatus, setSelectedStatus] = useState('active'); 
@@ -41,9 +42,30 @@ function Salary() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+// Filter states
+const [selectedMonth, setSelectedMonth] = useState('');
+const [selectedYear, setSelectedYear] = useState('');
+const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('');
+
+// Clear Filter handler
+const handleClearFilters = () => {
+  setSelectedMonth('');
+  setSelectedYear('');
+  setSelectedPaymentStatus('');
+  setSearch('');
+  setCurrentPage(1);
+};
+
   const getSalary = async (page = currentPage) => {
     try {
-      const response = await getAllSalary(page, 10, search);
+      const response = await getAllSalary(
+        page,
+        10,
+        search,
+        selectedMonth,
+        selectedYear,
+        selectedPaymentStatus
+      );
       setSalary(response.data?.salary || []);
       setTotalPages(response.data?.totalPages || 1);
     } catch (error) {
@@ -89,7 +111,8 @@ function Salary() {
       bonus: '',
       deduction: '',
       month: '',
-      year: ''
+      year: '',
+      paymentStatus: 'pending'
     });
     setOpenModal(true);
   };
@@ -103,7 +126,8 @@ function Salary() {
       bonus: item.bonus || '',
       deduction: item.deduction || '',
       month: item.month || '',
-      year: item.year || ''
+      year: item.year || '',
+      paymentStatus: item.paymentStatus || 'pending'
     });
     setOpenModal(true);
   };
@@ -128,7 +152,8 @@ function Salary() {
       deduction,
       netsalary,
       month: formData.month,
-      year: formData.year
+      year: formData.year,
+      paymentStatus: formData.paymentStatus || 'pending'
     };
 
     try {
@@ -182,12 +207,12 @@ function Salary() {
     loadData();
   }, []);
 
-  // Jab bhi search ya currentPage badle, naya data fetch ho
+  // Jab bhi search, filters ya currentPage badle, naya data fetch ho
   useEffect(() => {
     if (currentUser) {
       refreshSalaryData(currentPage);
     }
-  }, [search, currentPage]);
+  }, [search, currentPage, selectedMonth, selectedYear, selectedPaymentStatus]);
 
   // Helper to find selected employee username when editing
   const selectedEmpName = selectedId
@@ -196,6 +221,7 @@ function Salary() {
 
   const canManageSalary = hasPermission(permissions, 'manage_salary', role);
   const canUpdateSalary = hasPermission(permissions, 'update_salary', role);
+  const activeFilterCount = [selectedMonth, selectedYear, selectedPaymentStatus].filter(Boolean).length;
 
   return (
     <div className="flex min-h-screen bg-slate-50">
@@ -232,6 +258,84 @@ function Salary() {
           </div>
         </div>
 
+        {/* ── Filter Bar Card ── */}
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Filter Badge & Icon */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50/70 border border-indigo-100 text-indigo-700 rounded-xl text-xs font-bold uppercase tracking-wider">
+              <HiFilter className="text-base text-indigo-600" />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </div>
+
+            {/* Month Dropdown */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Month</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => { setSelectedMonth(e.target.value); setCurrentPage(1); }}
+                className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">All Months</option>
+                {MONTHS.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Year Dropdown */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => { setSelectedYear(e.target.value); setCurrentPage(1); }}
+                className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">All Years</option>
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Payment Status Dropdown */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</label>
+              <select
+                value={selectedPaymentStatus}
+                onChange={(e) => { setSelectedPaymentStatus(e.target.value); setCurrentPage(1); }}
+                className="px-3.5 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="paid">Paid</option>
+                <option value="onhold">On Hold</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Right Side: Active Filter Indicator & Clear Button */}
+          <div className="flex items-center gap-2 self-end md:self-center">
+            {activeFilterCount > 0 && (
+              <span className="text-xs font-medium text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-xl">
+                {activeFilterCount} active
+              </span>
+            )}
+            <button
+              onClick={handleClearFilters}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition shadow-xs cursor-pointer hover:text-gray-800"
+            >
+              <span className="text-base">⟳</span>
+              <span>Clear Filters</span>
+            </button>
+          </div>
+        </div>
+
         {/* Salary Records Table */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <table className="w-full border-collapse">
@@ -243,6 +347,7 @@ function Salary() {
                 <th className="text-left px-6 py-4">Bonus</th>
                 <th className="text-left px-6 py-4">Deduction</th>
                 <th className="text-left px-6 py-4">Net Salary</th>
+                <th className="text-left px-6 py-4">Status</th>
                 {canUpdateSalary && <th className="text-center px-6 py-4">Action</th>}
               </tr>
             </thead>
@@ -269,6 +374,19 @@ function Salary() {
                       <td className="px-6 py-4 text-green-600 font-medium">+₹{item.bonus || 0}</td>
                       <td className="px-6 py-4 text-red-500 font-medium">-₹{item.deduction || 0}</td>
                       <td className="px-6 py-4 font-bold text-indigo-600">₹{item.netsalary}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
+                          item.paymentStatus === 'paid'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : item.paymentStatus === 'approved'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : item.paymentStatus === 'onhold'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}>
+                          {item.paymentStatus || 'pending'}
+                        </span>
+                      </td>
                       {canUpdateSalary && (
                         <td className="px-6 py-4 text-center">
                           <button
@@ -285,7 +403,7 @@ function Salary() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={canUpdateSalary ? 7 : 6} className="text-center py-10 text-gray-400">
+                  <td colSpan={canUpdateSalary ? 8 : 7} className="text-center py-10 text-gray-400">
                     No salary records found
                   </td>
                 </tr>
@@ -428,6 +546,21 @@ function Salary() {
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
+              </div>
+
+              {/* Payment Status */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Payment Status</label>
+                <select
+                  value={formData.paymentStatus || 'pending'}
+                  onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="paid">Paid</option>
+                  <option value="onhold">On Hold</option>
+                </select>
               </div>
 
               {/* Net Salary Preview */}

@@ -47,6 +47,10 @@ module.exports = (sequelize, DataTypes) => {
       year: {
         type: DataTypes.STRING
       },
+      paymentStatus: {
+        type: DataTypes.ENUM('pending', 'approved', 'paid', 'onhold'),
+        defaultValue: 'pending'
+      },
       createdAt: {
         allowNull: false,
         type: DataTypes.DATE
