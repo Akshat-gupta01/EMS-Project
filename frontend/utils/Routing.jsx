@@ -13,6 +13,7 @@ import Salary from '../src/Components/Salary'
 import Leave from '../src/Components/Leave'
 import RolesPermissions from '../src/Components/RolesPermissions'
 import Attendancereport from '../src/Components/Attendancereport'
+import Task from '../src/Components/Task'
 
 function Routing() {
   return (
@@ -30,6 +31,7 @@ function Routing() {
         <Route path="/salary" element={<Salary/>}/>
         <Route path="/leave" element={<Leave/>}/>
         <Route path="/attendance-report" element={<Attendancereport/>}/>
+        <Route path="/tasks" element={<Task/>}/>
     </Routes>
   )
 }

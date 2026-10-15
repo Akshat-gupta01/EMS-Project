@@ -7,6 +7,7 @@ const attendenceRoutes=require('./Routes/attendance.routes')
 const salaryRoutes = require('./Routes/salary.routes');
 const leaveRoutes = require('./Routes/leave.routes');
 const roleRoutes=require('./Routes/role.routes');
+const taskRoutes=require('./Routes/task.routes');
 
 const cors=require('cors');
 const path = require('path');
@@ -30,6 +31,7 @@ app.use('/api/attendance', attendenceRoutes);
 app.use('/api/salary', salaryRoutes);
 app.use('/api/leave', leaveRoutes);
 app.use('/api/role', roleRoutes);
+app.use('/api/task', taskRoutes)
 
 module.exports = app;
 

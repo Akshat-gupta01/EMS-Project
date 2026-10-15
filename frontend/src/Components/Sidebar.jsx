@@ -10,7 +10,8 @@ import {
   HiOfficeBuilding,
   HiCash,
   HiLogout,
-  HiDocumentReport
+  HiDocumentReport,
+  HiClipboardCheck
 } from "react-icons/hi";
 import { useState, useEffect } from "react";
 import { hasPermission } from "../../utils/Permission";
@@ -37,7 +38,7 @@ export default function AppSidebar() {
     return (
       <Link
         to={to}
-        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+        className={`flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
           isActive
             ? "bg-slate-800 text-white font-semibold shadow-xs"
             : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -66,7 +67,7 @@ export default function AppSidebar() {
   },[])
 
   return (
-    <aside className="w-64 h-screen sticky top-0 shrink-0 bg-[#0f172a] border-r border-slate-800 flex flex-col shadow-lg z-20">
+    <aside className="w-72 h-screen sticky top-0 shrink-0 bg-[#0f172a] border-r border-slate-800 flex flex-col shadow-lg z-20">
       {/* Brand Header */}
       <div className="px-5 py-4 border-b border-slate-800/80 bg-slate-900/40">
         <Link to="/dashboard" className="flex items-center gap-3 group">
@@ -77,7 +78,7 @@ export default function AppSidebar() {
             <h2 className="text-base font-extrabold text-white tracking-wider leading-tight">
               SOFTFIX
             </h2>
-            <p className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mt-0.5">
+            <p className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mt-0.5 whitespace-nowrap">
               EMPLOYEE MANAGEMENT SYSTEM
             </p>
           </div>
@@ -85,13 +86,14 @@ export default function AppSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1.5">
+      <nav className="flex-1 overflow-y-auto py-4 px-3.5 space-y-1.5">
         {navItem("/dashboard", HiChartPie, "Dashboard")}
         {navItem("/employees", HiUsers, "Employees")}
         {navItem("/attendance", HiCalendar, "Attendance")}
         {navItem("/attendance-report", HiDocumentReport, "Attendance Report")}
         {navItem("/leave", HiClipboardList, "Leave Management")}
         {navItem("/department", HiOfficeBuilding, "Departments")}
+        {navItem("/tasks", HiClipboardCheck, "Task Managements")}
         {navItem("/salary", HiCash, "Salary")}
         {(user?.role?.toLowerCase() === "admin" || user?.roleId === 1 || user?.roleId === "1") &&
           navItem("/roles-permissions", HiShieldCheck, "Roles & Permissions")
@@ -100,7 +102,7 @@ export default function AppSidebar() {
         <div className="pt-4 mt-4 border-t border-slate-800">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer border-none bg-transparent"
+            className="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer border-none bg-transparent"
           >
             <HiLogout className="text-lg shrink-0" />
             <span>Logout</span>

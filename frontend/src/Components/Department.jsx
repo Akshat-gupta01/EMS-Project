@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { HiPencil, HiTrash, HiPlus } from 'react-icons/hi';
+import {
+  HiPlus,
+  HiPencil,
+  HiTrash,
+  HiX,
+  HiDotsHorizontal,
+  HiOutlineBookOpen,
+  HiOutlineUsers,
+  HiOutlineUserRemove
+} from 'react-icons/hi';
 import Sidebar from './Sidebar';
-import { addDepartment, getAllDepartments, updateDepartment, deleteDepartment } from '../../services/Departmentservice';
+import {
+  addDepartment,
+  getAllDepartments,
+  updateDepartment,
+  deleteDepartment
+} from '../../services/Departmentservice';
+import { getAllEmployees } from '../../services/Userservice';
 import { getMe } from '../../services/Authservice';
 import { hasPermission } from '../../utils/Permission';
 

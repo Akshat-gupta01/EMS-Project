@@ -75,7 +75,18 @@ async function verifyOtp(req, res) {
 
         const ismatch = await bcrypt.compare(otp, otpRecord.otpHash);
         if (!ismatch) {
-            return res.status(400).json({ message: 'Invalid OTP' });
+            const currentAttempts = (otpRecord.attempts || 0) + 1;
+            if (currentAttempts >= 5) {
+                await otpRecord.destroy();
+                return res.status(400).json({ 
+                    message: 'Maximum attempts reached (5/5). OTP expired for security.' 
+                });
+            }
+            await otpRecord.update({ attempts: currentAttempts });
+            const remainingAttempts = 5 - currentAttempts;
+            return res.status(400).json({ 
+                message: `Invalid OTP. You have ${remainingAttempts} attempt${remainingAttempts > 1 ? 's' : ''} remaining.` 
+            });
         }
 
         const user = await User.findOne({
@@ -216,6 +227,12 @@ async function updateProfile(req, res) {
                 message: 'User not found'
             });
         }
+
+        if (req.user.roleId !== 1 && req.user.id !== Number(id)) {
+            return res.status(403).json({ 
+                message: "You cannot edit another user's profile!" 
+            });
+        }
         await User.update({
             username: req.body.username,
             email: req.body.email
@@ -272,14 +289,26 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage,
+    limits:{fileSize:5*1024*1024},
+    fileFilter:(req,file,cb)=>{
+       const allowed=/jpeg|jpg|png|gif|svg|webp/;      
+       if(allowed.test(file.mimetype)){
+        return cb(null,true)
+       }else{
+        return cb(new Error("Invalid file type"),false)
+       }
+      
+    }
+});
 
 async function uploadImage(req, res) {
     try {
         if (!req.file) {
             return res.status(400).json({ message: "No file uploaded" });
         }
-        const targetUserId = req.body.userId || req.user.id;
+        const targetUserId = req.user.roleId!==1 ? req.user.id : req.body.userId;
+        console.log(targetUserId);
         await User.update({ profilePhoto: req.file.filename }, { where: { id: targetUserId } });
         res.status(200).json({ message: "Image uploaded successfully", filename: req.file.filename });
     } catch (error) {

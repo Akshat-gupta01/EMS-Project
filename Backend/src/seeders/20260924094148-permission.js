@@ -34,8 +34,12 @@ module.exports = {
           { name: "view_roles" },
           { name: "view_permissions" },
           { name: "update_permissions" },
-          { name: "update_status" }
-         
+          { name: "update_status" },
+          { name: "assign_task" },
+          { name: "view_task" },
+          { name: "update_task" },
+          { name: "delete_task" },
+          { name: "create_task" }
       ]);
   },
 

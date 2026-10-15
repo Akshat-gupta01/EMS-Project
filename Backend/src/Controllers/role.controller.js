@@ -43,6 +43,13 @@ async function updatePermission(req, res) {
         if (!role) {
             return res.status(404).json({ message: "Role not found" });
         }
+
+        // Admin role ko protect karo taaki koi uski permissions strip/change na kar sake
+        if (Number(roleId) === 1 || role.name?.toLowerCase() === 'admin') {
+            return res.status(400).json({ 
+                message: "Cannot modify Super Admin permissions" 
+            });
+        }
         // Sequelize Magic Method: Yeh purani permissions ko automatically naye IDs se replace kar deta hai
         await role.setPermissions(permissions || []);
         res.status(200).json({

@@ -34,7 +34,12 @@ module.exports = (sequelize, DataTypes) => {
     foreignKey: 'userId',
     as: 'leaves'
   });
-// Matlab: "Ek user ke paas bahut saari attendances ho sakti hain"
+
+  
+    // task
+    User.hasMany(models.Task, { foreignKey: 'assignedTo', as: 'assignedTasks' });
+    User.hasMany(models.Task, { foreignKey: 'assignedBy', as: 'createdTasks' });
+
 
     }
   }

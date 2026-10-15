@@ -7,6 +7,13 @@ async function createEmployee(req, res) {
     try {
         const { username, email, password, roleId, departmentId } = req.body;
 
+        // Security Check: Only Super Admin can assign the Super Admin role (roleId: 1)
+        if (Number(roleId) === 1 && req.user.roleId !== 1) {
+            return res.status(403).json({ 
+                message: "Only Super Admin can assign the Admin role" 
+            });
+        }
+
         const user = await User.findOne({
             where: { email: email }
         });
@@ -30,7 +37,15 @@ async function createEmployee(req, res) {
 
         res.status(201).json({
             message: 'Employee created successfully',
-            user: newUser
+            user: {
+                id: newUser.id,
+                username: newUser.username,
+                email: newUser.email,
+                roleId: newUser.roleId,
+                departmentId: newUser.departmentId,
+                status: newUser.status,
+                isVerified: newUser.isVerified
+            }
         });
     } catch (err) {
         console.error("Error in createEmployee:", err);
@@ -99,54 +114,6 @@ async function getallUsers(req, res) {
   }
 }
 
-async function updateRole(req, res) {
-    try {
-        const id = req.params.id;
-        const user = await User.findByPk(id);
-        if (!user) {
-            return res.status(404).json({
-                message: 'User not found'
-            });
-        }
-        await User.update({
-            roleId: req.body.roleId
-        }, { where: { id } });
-
-        res.status(200).json({
-            message: 'Role updated successfully'
-        });
-    } catch (error) {
-        console.error("Error in updateRole:", error);
-        res.status(500).json({ message: 'Error updating role', error: error.message });
-    }
-}
-
-async function updateDepartment(req, res) {
-    try {
-        const id = req.params.id;
-        const user = await User.findByPk(id);
-        if (!user) {
-            return res.status(404).json({
-                message: 'User not found'
-            });
-        }
-        if (user.roleId === 1) {
-            return res.status(400).json({
-                message: 'Cannot assign department to an Admin'
-            });
-        }
-        await User.update({
-            departmentId: req.body.departmentId
-        }, { where: { id } });
-
-        res.status(200).json({
-            message: 'Department assigned successfully'
-        });
-    } catch (error) {
-        console.error("Error in updateDepartment:", error);
-        res.status(500).json({ message: 'Error updating department', error: error.message });
-    }
-}
 
 async function updateEmployee(req, res) {
     try {
@@ -160,19 +127,48 @@ async function updateEmployee(req, res) {
             });
         }
 
-        const updateData = {};
-        if (username !== undefined) updateData.username = username;
-        if (email !== undefined) updateData.email = email;
+        // 1. Security Check: Non-Admin users Super Admin ko modify nahi kar sakte
+        if (user.roleId === 1 && req.user.roleId !== 1) {
+            return res.status(403).json({ 
+                message: 'You cannot modify the Super Admin account' 
+            });
+        }
 
-        // If user is Admin (roleId 1), protect from changing role/dept or deactivating
+        // 2. Ek empty object jisme sirf wahi data jayega jo update karna hai
+        const updateData = {};
+
+        // 3. Username aur Email check
+        if (username !== undefined) {
+            updateData.username = username;
+        }
+        if (email !== undefined) {
+            updateData.email = email;
+        }
+
+        // 4. Admin ko deactivate hone se bachana
         if (user.roleId === 1) {
             if (status !== undefined && status !== 'active') {
-                return res.status(400).json({ message: 'Cannot deactivate an Admin account' });
+                return res.status(400).json({ 
+                    message: 'Cannot deactivate an Admin account' 
+                });
             }
         } else {
-            if (roleId !== undefined) updateData.roleId = roleId ? Number(roleId) : null;
-            if (departmentId !== undefined) updateData.departmentId = departmentId ? Number(departmentId) : null;
-            if (status !== undefined) updateData.status = status;
+            // Rules for Normal Employee:
+            if (roleId !== undefined) {
+                // Security Check: Only Super Admin can promote someone to Admin (roleId: 1)
+                if (Number(roleId) === 1 && req.user.roleId !== 1) {
+                    return res.status(403).json({ 
+                        message: "Only Super Admin can assign the Admin role" 
+                    });
+                }
+                updateData.roleId = roleId ? Number(roleId) : null;
+            }
+            if (departmentId !== undefined) {
+                updateData.departmentId = departmentId ? Number(departmentId) : null;
+            }
+            if (status !== undefined) {
+                updateData.status = status;
+            }
         }
 
         await User.update(updateData, { where: { id } });
@@ -288,10 +284,8 @@ async function getEmployeeStatusStats(req, res) {
 
 module.exports = { 
     getallUsers, 
-    updateRole, 
     updateEmployee, 
     deleteEmployee, 
-    updateDepartment, 
     getallRoles, 
     createEmployee,
     updateStatus,
