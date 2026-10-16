@@ -14,4 +14,12 @@ export async function leaveGetAll(page = 1, limit = 10,search) {
     });
 }
 
+export async function leaveStatusUpdate(id, data) {
+    return api.patch(`/api/leave/status/${id}`, data);
+}
+
+export async function getMyLeaveBalance() {
+    return api.get("/api/leave/my-balance");
+}
+
 

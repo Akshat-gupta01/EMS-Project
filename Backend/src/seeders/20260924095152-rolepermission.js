@@ -11,7 +11,7 @@ module.exports = {
         // 12=create_department, 13=update_department, 14=delete_department
         // 15=view_departments, 16=view_salary, 17=manage_salary, 18=update_salary
         // 19=view_roles, 20=view_permissions, 21=update_permissions, 22=update_status
-        // 23=assign_task, 24=view_task, 25=update_task, 26=delete_task, 27=create_task
+        // 23=assign_task, 24=view_task, 25=update_task, 26=delete_task, 27=create_task, 28=update_leave
 
         // Admin role (All permissions)
         { roleId: 1, permissionId: 1 },  // create_employee
@@ -41,6 +41,7 @@ module.exports = {
         { roleId: 1, permissionId: 25 }, // update_task
         { roleId: 1, permissionId: 26 }, // delete_task
         { roleId: 1, permissionId: 27 }, // create_task
+        { roleId: 1, permissionId: 28 }, // update_leave
 
         // HR role
         { roleId: 2, permissionId: 1 },  // create_employee
@@ -62,6 +63,7 @@ module.exports = {
         { roleId: 2, permissionId: 24 }, // view_task
         { roleId: 2, permissionId: 25 }, // update_task
         { roleId: 2, permissionId: 27 }, // create_task
+        { roleId: 2, permissionId: 28 }, // update_leave
 
         // Manager role
         { roleId: 3, permissionId: 4 },  // view_employees
@@ -75,6 +77,7 @@ module.exports = {
         { roleId: 3, permissionId: 24 }, // view_task
         { roleId: 3, permissionId: 25 }, // update_task
         { roleId: 3, permissionId: 27 }, // create_task
+        { roleId: 3, permissionId: 28 }, // update_leave
 
         // Accountant role
         { roleId: 4, permissionId: 4 },  // view_employees
@@ -85,6 +88,7 @@ module.exports = {
         { roleId: 4, permissionId: 17 }, // manage_salary
         { roleId: 4, permissionId: 18 }, // update_salary
         { roleId: 4, permissionId: 27 }, // create_task
+        { roleId: 4, permissionId: 28 }, // update_leave
 
         // Employee role
         { roleId: 5, permissionId: 4 },  // view_employees
@@ -95,6 +99,7 @@ module.exports = {
         { roleId: 5, permissionId: 24 }, // view_task
         { roleId: 5, permissionId: 25 }, // update_task
         { roleId: 5, permissionId: 27 }, // create_task
+        { roleId: 5, permissionId: 28 }, // update_leave
     ]);
   },
 

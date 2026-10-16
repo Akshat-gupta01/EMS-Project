@@ -5,7 +5,7 @@ import { getAllEmployees, getEmployeeStatusStats } from "../../services/Userserv
 import { leaveGetAll } from "../../services/Leaveservice";
 import { getAllDepartments } from "../../services/Departmentservice";
 import { getAllAttendance } from "../../services/Attendanceservice";
-import Auth from "./Auth";
+import Auth from "../pages/Auth";
 
 import {
   Chart as ChartJS,

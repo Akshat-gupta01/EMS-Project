@@ -1,11 +1,11 @@
 import React from 'react'
 import { Route, Routes } from 'react-router-dom'
-import Register from '../src/Components/Register'
-import Login from '../src/Components/Login'
-import Logout from '../src/Components/Logout'
-import Verifyotp from '../src/Components/Verifyotp'
+import Register from '../src/pages/Register'
+import Login from '../src/pages/Login'
+import Logout from '../src/pages/Logout'
+import Verifyotp from '../src/pages/Verifyotp'
 import Dashboard from '../src/Components/Dashboard'
-import Pendingapproval from '../src/Components/Pendingapproval'
+import Pendingapproval from '../src/pages/Pendingapproval'
 import Employee from '../src/Components/Employee'
 import Department from '../src/Components/Department'
 import Attendance from '../src/Components/Attendance'
@@ -14,6 +14,7 @@ import Leave from '../src/Components/Leave'
 import RolesPermissions from '../src/Components/RolesPermissions'
 import Attendancereport from '../src/Components/Attendancereport'
 import Task from '../src/Components/Task'
+import Leavetypesetting from '../src/pages/Leavetypesetting'
 
 function Routing() {
   return (
@@ -29,6 +30,7 @@ function Routing() {
         <Route path="/roles-permissions" element={<RolesPermissions/>}/>
         <Route path="/attendance" element={<Attendance/>}/>
         <Route path="/salary" element={<Salary/>}/>
+        <Route path='/leave-type-settings' element={<Leavetypesetting/>}/>
         <Route path="/leave" element={<Leave/>}/>
         <Route path="/attendance-report" element={<Attendancereport/>}/>
         <Route path="/tasks" element={<Task/>}/>

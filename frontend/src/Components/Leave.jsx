@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { leaveCreate, leaveUpdate, leaveGetAll } from '../../services/Leaveservice';
+import { leaveCreate, leaveUpdate, leaveStatusUpdate, leaveGetAll, getMyLeaveBalance } from '../../services/Leaveservice';
 import { getMe } from '../../services/Authservice';
 import { toast } from 'react-hot-toast';
-import { HiPlus, HiX } from 'react-icons/hi';
+import { HiPlus, HiX, HiPencil } from 'react-icons/hi';
 import Sidebar from './Sidebar';
 import Pagination from './Pagination';
 
 function Leave() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [canApprove, setCanApprove] = useState(false);
-  const [leaves, setLeaves] = useState([]); // all leaves store in leaves array
-  const [openModal, setOpenModal] = useState(false); // when click the apply leave button so that the modal open 
-  const [formData, setFormData] = useState({  // data which is going to be sent to the server
-    leaveType: 'Casual Leave', // type of leave
+  const [leaves, setLeaves] = useState([]);
+  const [leaveBalances, setLeaveBalances] = useState([]);
+  const [openModal, setOpenModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [formError, setFormError] = useState('');
+
+  const [formData, setFormData] = useState({
+    leaveType: 'Casual Leave',
     leaveDate: '',
     duration: 'Full Day',
     reason: ''
@@ -19,6 +25,7 @@ function Leave() {
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectData, setRejectData] = useState({ id: null, reason: '' });
+  const [rejectError, setRejectError] = useState('');
   const [search, setSearch] = useState('');
 
   // Pagination
@@ -27,7 +34,7 @@ function Leave() {
 
   const fetchLeaves = async (page = currentPage) => {
     try {
-      const response = await leaveGetAll(page, 10,search);
+      const response = await leaveGetAll(page, 10, search);
       setLeaves(response.data?.leaves || []);
       setTotalPages(response.data?.totalPages || 1);
     } catch (error) {
@@ -36,9 +43,35 @@ function Leave() {
     }
   };
 
+  // Default fallback balances if API is loading
+  const defaultBalances = [
+    { leaveType: 'Casual Leave', totalYearly: 12, usedYearly: 0, remainingYearly: 12, monthlyLimit: 1, usedMonthly: 0, remainingMonthly: 1, paidStatus: 'Paid', color: '#16813D' },
+    { leaveType: 'Sick Leave', totalYearly: 2, usedYearly: 0, remainingYearly: 2, monthlyLimit: 2, usedMonthly: 0, remainingMonthly: 2, paidStatus: 'Paid', color: '#DC2626' },
+    { leaveType: 'Earned Leave', totalYearly: 2, usedYearly: 0, remainingYearly: 2, monthlyLimit: 2, usedMonthly: 0, remainingMonthly: 2, paidStatus: 'Paid', color: '#64748B' }
+  ];
+
+  const displayBalances = leaveBalances && leaveBalances.length > 0 ? leaveBalances : defaultBalances;
+
+  // Fetch logged-in employee's personal leave balance
+  const fetchBalances = async () => {
+    try {
+      const res = await getMyLeaveBalance();
+      if (res.data?.balances && res.data.balances.length > 0) {
+        setLeaveBalances(res.data.balances);
+      }
+    } catch (error) {
+      console.error('Error fetching my leave balances:', error);
+    }
+  };
+
   const openApplyModal = () => {
+    setIsEditing(false);
+    setEditId(null);
+    setFormError('');
+    fetchBalances();
+    const initialType = displayBalances && displayBalances.length > 0 ? displayBalances[0].leaveType : 'Casual Leave';
     setFormData({
-      leaveType: 'Casual Leave',
+      leaveType: initialType,
       leaveDate: '',
       duration: 'Full Day',
       reason: ''
@@ -46,18 +79,40 @@ function Leave() {
     setOpenModal(true);
   };
 
-  const handleApplyLeave = async (e) => {
+  const openEditModal = (item) => {
+    setIsEditing(true);
+    setEditId(item.id);
+    setFormError('');
+    fetchBalances();
+    const formattedDate = item.leaveDate ? String(item.leaveDate).split('T')[0] : '';
+    setFormData({
+      leaveType: item.leaveType || 'Casual Leave',
+      leaveDate: formattedDate,
+      duration: item.duration || 'Full Day',
+      reason: item.reason || ''
+    });
+    setOpenModal(true);
+  };
+
+  // Direct submission without any frontend validation guards - all validation checked by backend
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.leaveDate || !formData.duration || !formData.reason.trim()) {
-      toast.error('Please fill all required fields');
-      return;
-    }
+    setFormError('');
 
     try {
-      const response = await leaveCreate(formData);
+      let response;
+      if (isEditing) {
+        response = await leaveUpdate(editId, formData);
+      } else {
+        response = await leaveCreate(formData);
+      }
+
       if (response.status === 200 || response.status === 201) {
-        toast.success(response.data?.message || 'Leave applied successfully');
+        toast.success(response.data?.message || (isEditing ? 'Leave updated successfully' : 'Leave applied successfully'));
         setOpenModal(false);
+        setIsEditing(false);
+        setEditId(null);
+        setFormError('');
         setFormData({
           leaveType: 'Casual Leave',
           leaveDate: '',
@@ -65,49 +120,67 @@ function Leave() {
           reason: ''
         });
         fetchLeaves();
+        fetchBalances();
       }
     } catch (error) {
-      console.error('Error applying leave:', error);
-      toast.error(error.response?.data?.message || 'Failed to apply leave');
+      console.error('Error saving leave:', error);
+      const errMsg = error.response?.data?.message || 'Failed to save leave';
+      setFormError(errMsg);
+      toast.error(errMsg);
     }
   };
 
+  // Approve or Reject actions via leaveStatusUpdate (/api/leave/status/:id)
   const handleStatusUpdate = async (id, status, rejection_reason = '') => {
     try {
-      const response = await leaveUpdate(id, { status, rejection_reason });
+      const response = await leaveStatusUpdate(id, { status, rejection_reason });
       if (response.status === 200) {
         toast.success(response.data?.message || `Leave ${status} successfully`);
         fetchLeaves();
+        fetchBalances();
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Error updating leave status:', error);
-      toast.error(error.response?.data?.message || 'Failed to update leave');
+      const errMsg = error.response?.data?.message || 'Failed to update leave';
+      toast.error(errMsg);
+      return false;
     }
   };
 
-  const   openRejectModal = (id) => {
+  const openRejectModal = (id) => {
     setRejectData({ id, reason: '' });
+    setRejectError('');
     setRejectModalOpen(true);
   };
 
   const confirmReject = async (e) => {
     e.preventDefault();
     if (!rejectData.id) return;
-    await handleStatusUpdate(rejectData.id, 'rejected', rejectData.reason.trim());
-    setRejectModalOpen(false);
-    setRejectData({ id: null, reason: '' });
+    setRejectError('');
+    const ok = await handleStatusUpdate(rejectData.id, 'rejected', rejectData.reason);
+    if (ok) {
+      setRejectModalOpen(false);
+      setRejectData({ id: null, reason: '' });
+      setRejectError('');
+    } else {
+      setRejectError('Rejection reason is required.');
+    }
   };
 
-  // Jab bhi currentPage badle, naye page ki leaves fetch karo
   useEffect(() => {
     fetchLeaves(currentPage);
-  }, [search,currentPage]);
+    fetchBalances();
+  }, [search, currentPage]);
 
-  // Initial load par permissions check karo
   useEffect(() => {
     async function loadData() {
       try {
         const response = await getMe();
+        if (response.data?.user) {
+          setCurrentUser(response.data.user);
+        }
         const permissions = response.data?.permissions || [];
         setCanApprove(permissions.includes('approve_leave'));
       } catch (err) {
@@ -149,6 +222,7 @@ function Leave() {
           </div>
         </div>
 
+
         {/* Leave Requests Table */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <table className="w-full border-collapse">
@@ -161,7 +235,7 @@ function Leave() {
                 <th className="text-left px-6 py-4">Reason</th>
                 <th className="text-left px-6 py-4">Status</th>
                 <th className="text-left px-6 py-4">Rejection Reason</th>
-                {canApprove && <th className="text-center px-6 py-4">Action</th>}
+                <th className="text-center px-6 py-4">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
@@ -169,6 +243,12 @@ function Leave() {
                 leaves.map((item) => {
                   const name = item.user?.username || `User #${item.userId}`;
                   const email = item.user?.email || '';
+                  const applicantId = item.userId ?? item.user?.id;
+                  const isOwnLeave = Boolean(currentUser?.id && applicantId && Number(applicantId) === Number(currentUser.id));
+                  const isPending = String(item.status || '').toLowerCase() === 'pending';
+                  const canEditThisLeave = isOwnLeave && isPending;
+                  const isAdmin = currentUser?.role?.toLowerCase() === 'admin';
+                  const canDecideThisLeave = canApprove && (isAdmin || !isOwnLeave) && isPending;
 
                   return (
                     <tr key={item.id} className="hover:bg-gray-50 transition">
@@ -217,34 +297,50 @@ function Leave() {
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
-                      {canApprove && (
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            {item.status !== 'approved' && (
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {/* Employee can edit only their own leave before it is approved/rejected */}
+                          {canEditThisLeave && (
+                            <button
+                              onClick={() => openEditModal(item)}
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 shadow-xs"
+                              title="Edit your pending leave"
+                            >
+                              <HiPencil className="text-xs" />
+                              <span>Edit</span>
+                            </button>
+                          )}
+
+                          {/* Admin / Manager / HR Approval / Rejection buttons (only for pending leaves) */}
+                          {canDecideThisLeave && (
+                            <>
                               <button
                                 onClick={() => handleStatusUpdate(item.id, 'approved')}
-                                className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold transition cursor-pointer"
+                                className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold transition cursor-pointer"
                               >
                                 Approve
                               </button>
-                            )}
-                            {item.status !== 'rejected' && (
                               <button
                                 onClick={() => openRejectModal(item.id)}
-                                className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-semibold transition cursor-pointer"
+                                className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-xs font-semibold transition cursor-pointer"
                               >
                                 Reject
                               </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                            </>
+                          )}
+
+                          {/* If no action is available */}
+                          {!canEditThisLeave && !canDecideThisLeave && (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={canApprove ? 8 : 7} className="text-center py-10 text-gray-400">
+                  <td colSpan={8} className="text-center py-10 text-gray-400">
                     No leave records found
                   </td>
                 </tr>
@@ -261,14 +357,20 @@ function Leave() {
         </div>
       </div>
 
-      {/* ── Apply Leave Modal ────────────────────────────────────────── */}
+      {/* ── Apply / Edit Leave Modal ────────────────────────────────────────── */}
       {openModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-xs p-4">
           <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Apply for Leave</h2>
-                <p className="text-xs text-gray-500">Submit your leave application for review</p>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {isEditing ? 'Edit Leave Application' : 'Apply for Leave'}
+                </h2>
+                <p className="text-xs text-gray-500">
+                  {isEditing
+                    ? 'Update your pending leave request details before status decision'
+                    : 'Submit your leave application for review'}
+                </p>
               </div>
               <button
                 onClick={() => setOpenModal(false)}
@@ -278,60 +380,92 @@ function Leave() {
               </button>
             </div>
 
-            <form onSubmit={handleApplyLeave} className="space-y-3.5">
+
+            {/* Backend validation error notification */}
+            {formError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
+                <span className="font-bold shrink-0">Validation Error:</span>
+                <span>{formError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleFormSubmit} className="space-y-3.5">
               {/* Leave Type */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Leave Type</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Leave Type <span className="text-red-500 font-bold">*</span>
+                </label>
+
                 <select
                   value={formData.leaveType}
-                  onChange={(e) => setFormData({ ...formData, leaveType: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={(e) => {
+                    setFormData({ ...formData, leaveType: e.target.value });
+                    setFormError('');
+                  }}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 >
-                  <option value="Casual Leave">Casual Leave</option>
-                  <option value="Sick Leave">Sick Leave</option>
-                  <option value="Paid Leave">Paid Leave</option>
-                  <option value="Emergency Leave">Emergency Leave</option>
+                  {displayBalances.map((b, i) => (
+                    <option key={i} value={b.leaveType}>
+                      {b.leaveType} — {b.remainingYearly} of {b.totalYearly} left ({b.remainingMonthly} left this month)
+                    </option>
+                  ))}
                 </select>
               </div>
 
               {/* Leave Date and Duration */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Leave Date</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Leave Date <span className="text-red-500 font-bold">*</span>
+                  </label>
                   <input
                     type="date"
-                    required
                     value={formData.leaveDate}
-                    onChange={(e) => setFormData({ ...formData, leaveDate: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, leaveDate: e.target.value });
+                      setFormError('');
+                    }}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
+                  <p className="text-[10px] text-gray-400 mt-1">Today or future date</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Duration</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Duration <span className="text-red-500 font-bold">*</span>
+                  </label>
                   <select
                     value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, duration: e.target.value });
+                      setFormError('');
+                    }}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Full Day">Full Day</option>
                     <option value="First Half">First Half</option>
                     <option value="Second Half">Second Half</option>
-                    <option value="Multiple">Multiple</option>
                   </select>
+                  <p className="text-[10px] text-gray-400 mt-1">Full Day or Half Day</p>
                 </div>
               </div>
 
               {/* Reason */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Reason for Leave</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-semibold text-gray-700">
+                    Reason for Leave <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <span className="text-[10px] text-gray-400">Mandatory (Max 500 chars)</span>
+                </div>
                 <textarea
                   rows="3"
                   placeholder="Please describe the reason for your leave..."
-                  required
                   value={formData.reason}
-                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, reason: e.target.value });
+                    setFormError('');
+                  }}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 ></textarea>
               </div>
@@ -349,7 +483,7 @@ function Leave() {
                   type="submit"
                   className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm cursor-pointer"
                 >
-                  Apply Leave
+                  {isEditing ? 'Update Leave' : 'Submit Application'}
                 </button>
               </div>
             </form>
@@ -357,42 +491,48 @@ function Leave() {
         </div>
       )}
 
-      {/* ── Reject Reason Modal ──────────────────────────────────────── */}
+      {/* ── Reject Modal ────────────────────────────────────────── */}
       {rejectModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-xs p-4">
-          <div className="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Reject Leave Request</h2>
-                <p className="text-xs text-gray-500">Provide a reason for rejecting this leave application</p>
-              </div>
-            </div>
+          <div className="bg-white p-6 rounded-2xl w-full max-w-sm shadow-2xl space-y-4">
+            <h2 className="text-lg font-bold text-gray-900">Reject Leave Application</h2>
+            <p className="text-xs text-gray-500">
+              Please provide a reason for rejecting this leave application.
+            </p>
 
-            <form onSubmit={confirmReject} className="space-y-3.5">
+            {rejectError && (
+              <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl">
+                {rejectError}
+              </div>
+            )}
+
+            <form onSubmit={confirmReject} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Rejection Reason <span className="text-gray-400 font-normal">(optional)</span>
+                  Rejection Reason <span className="text-red-500 font-bold">*</span>
                 </label>
                 <textarea
                   rows="3"
-                  placeholder="Enter rejection reason"
+                  placeholder="Reason for rejection (mandatory)..."
                   value={rejectData.reason}
-                  onChange={(e) => setRejectData({ ...rejectData, reason: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none"
+                  onChange={(e) => {
+                    setRejectData({ ...rejectData, reason: e.target.value });
+                    setRejectError('');
+                  }}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 ></textarea>
               </div>
-
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setRejectModalOpen(false)}
-                  className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-semibold transition cursor-pointer"
+                  className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition shadow-sm cursor-pointer"
+                  className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
                 >
                   Confirm Reject
                 </button>

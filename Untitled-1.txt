@@ -1,0 +1,4 @@
+employee - leave -> manager,hr,admin -> approve
+manager - leave -> hr,admin -> approve
+hr - leave -> admin -> approve
+admin - leave -> admin -> approve

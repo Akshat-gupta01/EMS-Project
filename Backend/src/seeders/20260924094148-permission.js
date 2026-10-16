@@ -39,7 +39,8 @@ module.exports = {
           { name: "view_task" },
           { name: "update_task" },
           { name: "delete_task" },
-          { name: "create_task" }
+          { name: "create_task" },
+          {name:"update_leave"}
       ]);
   },
 
